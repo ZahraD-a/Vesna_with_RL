@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b70jui3g3hhxp"
+path="res://.godot/imported/kitchenCabinet.obj-74a9317949f28158bd82e13e8ba98804.mesh"
+
+[deps]
+
+files=["res://.godot/imported/kitchenCabinet.obj-74a9317949f28158bd82e13e8ba98804.mesh"]
+
+source_file="res://addons/kenney_furniturePack/Models/kitchenCabinet.obj"
+dest_files=["res://.godot/imported/kitchenCabinet.obj-74a9317949f28158bd82e13e8ba98804.mesh", "res://.godot/imported/kitchenCabinet.obj-74a9317949f28158bd82e13e8ba98804.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

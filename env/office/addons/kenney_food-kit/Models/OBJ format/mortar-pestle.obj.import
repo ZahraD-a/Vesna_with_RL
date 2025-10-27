@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cr8lsm4fpbbc"
+path="res://.godot/imported/mortar-pestle.obj-49cf10561ba25445cf91257c6250e8fc.mesh"
+
+[deps]
+
+files=["res://.godot/imported/mortar-pestle.obj-49cf10561ba25445cf91257c6250e8fc.mesh"]
+
+source_file="res://addons/kenney_food-kit/Models/OBJ format/mortar-pestle.obj"
+dest_files=["res://.godot/imported/mortar-pestle.obj-49cf10561ba25445cf91257c6250e8fc.mesh", "res://.godot/imported/mortar-pestle.obj-49cf10561ba25445cf91257c6250e8fc.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

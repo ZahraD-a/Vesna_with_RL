@@ -1,0 +1,10 @@
+mas vesna {
+
+    agent alice:alice_1.asl {
+        ag-class:   vesna.VesnaAgent
+        address:    localhost
+        port:       9080
+        goals:      start
+    }
+
+}

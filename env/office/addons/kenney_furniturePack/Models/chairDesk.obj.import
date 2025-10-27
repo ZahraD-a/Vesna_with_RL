@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dct0lhy5ugbnc"
+path="res://.godot/imported/chairDesk.obj-52190dc7af3fd2dfdcbecb8df1ae296b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/chairDesk.obj-52190dc7af3fd2dfdcbecb8df1ae296b.mesh"]
+
+source_file="res://addons/kenney_furniturePack/Models/chairDesk.obj"
+dest_files=["res://.godot/imported/chairDesk.obj-52190dc7af3fd2dfdcbecb8df1ae296b.mesh", "res://.godot/imported/chairDesk.obj-52190dc7af3fd2dfdcbecb8df1ae296b.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

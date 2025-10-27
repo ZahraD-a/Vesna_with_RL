@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ypacu42xy7g0"
+path="res://.godot/imported/meat-patty.obj-81d528c7f4744f2a7cd2f42b29422054.mesh"
+
+[deps]
+
+files=["res://.godot/imported/meat-patty.obj-81d528c7f4744f2a7cd2f42b29422054.mesh"]
+
+source_file="res://addons/kenney_food-kit/Models/OBJ format/meat-patty.obj"
+dest_files=["res://.godot/imported/meat-patty.obj-81d528c7f4744f2a7cd2f42b29422054.mesh", "res://.godot/imported/meat-patty.obj-81d528c7f4744f2a7cd2f42b29422054.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

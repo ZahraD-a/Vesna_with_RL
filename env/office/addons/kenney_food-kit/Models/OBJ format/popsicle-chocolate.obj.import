@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dqrtur7v574n5"
+path="res://.godot/imported/popsicle-chocolate.obj-1e7fa5af672443ba6c06f6c1bcb0786c.mesh"
+
+[deps]
+
+files=["res://.godot/imported/popsicle-chocolate.obj-1e7fa5af672443ba6c06f6c1bcb0786c.mesh"]
+
+source_file="res://addons/kenney_food-kit/Models/OBJ format/popsicle-chocolate.obj"
+dest_files=["res://.godot/imported/popsicle-chocolate.obj-1e7fa5af672443ba6c06f6c1bcb0786c.mesh", "res://.godot/imported/popsicle-chocolate.obj-1e7fa5af672443ba6c06f6c1bcb0786c.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

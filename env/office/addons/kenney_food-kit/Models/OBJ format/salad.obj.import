@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://musccrhehshb"
+path="res://.godot/imported/salad.obj-8c5d4453085c1d5ef99589f4d6c70cba.mesh"
+
+[deps]
+
+files=["res://.godot/imported/salad.obj-8c5d4453085c1d5ef99589f4d6c70cba.mesh"]
+
+source_file="res://addons/kenney_food-kit/Models/OBJ format/salad.obj"
+dest_files=["res://.godot/imported/salad.obj-8c5d4453085c1d5ef99589f4d6c70cba.mesh", "res://.godot/imported/salad.obj-8c5d4453085c1d5ef99589f4d6c70cba.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

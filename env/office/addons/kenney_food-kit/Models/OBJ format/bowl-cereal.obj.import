@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dp801qum00oow"
+path="res://.godot/imported/bowl-cereal.obj-dfcdbfb439e7ed3aced95300add36b2b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/bowl-cereal.obj-dfcdbfb439e7ed3aced95300add36b2b.mesh"]
+
+source_file="res://addons/kenney_food-kit/Models/OBJ format/bowl-cereal.obj"
+dest_files=["res://.godot/imported/bowl-cereal.obj-dfcdbfb439e7ed3aced95300add36b2b.mesh", "res://.godot/imported/bowl-cereal.obj-dfcdbfb439e7ed3aced95300add36b2b.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
