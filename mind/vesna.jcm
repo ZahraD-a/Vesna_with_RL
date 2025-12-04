@@ -1,6 +1,6 @@
 mas vesna {
 
-    agent alice:alice_1.asl {
+    agent alice:alice.asl {
         ag-class:   vesna.VesnaAgent
         address:    localhost
         port:       9080

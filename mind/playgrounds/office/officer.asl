@@ -20,7 +20,7 @@
     :   .my_name( Me ) & not at( coffee_machine ) & not ntpp( Me, common )
     <-  .print( "Going to take a coffee" );
         !go_to( coffee_machine );
-        !take_coffe( Cup ).
+        !take_coffee( Cup ).
 
 +!take_coffee( Cup )
     :   not grab( Cup )
