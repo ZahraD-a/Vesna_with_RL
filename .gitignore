@@ -1,0 +1,5 @@
+mind/.gradle/
+mind/build/
+mind/gradle/
+mind/*.zip
+mind/jdk-*/
