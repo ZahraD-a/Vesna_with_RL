@@ -6,5 +6,10 @@ mas vesna {
         port:       9080
         goals:      start
     }
-
+    agent bob:bob.asl {
+        ag-class:   vesna.VesnaAgent
+        address:    localhost
+        port:       9081          // Different port!
+        goals:      start
+    }
 }
