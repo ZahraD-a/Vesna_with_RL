@@ -1,0 +1,104 @@
+package rl;
+
+import jason.asSemantics.*;
+import jason.asSyntax.*;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+/**
+ * Internal action to request action selection from RL service.
+ *
+ * This is a DOMAIN-AGNOSTIC HTTP client. It knows nothing about regions,
+ * maps, or what the state/action vectors mean. All domain knowledge stays
+ * in the ASL files.
+ *
+ * Usage in ASL:
+ *   rl.select_action(StateVector, ValidActionIds, Reward, Done, ActionId)
+ *
+ * Example:
+ *   rl.select_action([0,0,0,0,0,0,0,1,0,0,0], [1], -1.0, false, ActionId)
+ *   // ActionId will be unified with the selected action (integer)
+ *
+ * The reward is computed in Jason (reward machine), NOT in Python.
+ * The state encoding is done in Jason, NOT here.
+ */
+public class select_action extends DefaultInternalAction {
+
+    private static final String RL_SERVICE_URL = "http://localhost:5000/select_action";
+    private static final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+    @Override
+    public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
+        // Args: StateVector (list), ValidActionIds (list of ints), Reward, Done, ActionId (output)
+        if (args.length != 5) {
+            throw new Exception("select_action requires 5 arguments: StateVector, ValidActionIds, Reward, Done, ActionId");
+        }
+
+        String agentName = ts.getAgArch().getAgName();
+        ListTerm stateList = (ListTerm) args[0];
+        ListTerm validActionsList = (ListTerm) args[1];
+        double reward = ((NumberTerm) args[2]).solve();
+        boolean done = args[3].toString().equals("true");
+
+        // Build state vector from list
+        JSONArray stateArray = new JSONArray();
+        for (Term t : stateList) {
+            if (t.isNumeric()) {
+                stateArray.put(((NumberTerm) t).solve());
+            } else {
+                stateArray.put(Double.parseDouble(t.toString()));
+            }
+        }
+
+        // Build valid actions array from list
+        JSONArray validActionsArray = new JSONArray();
+        for (Term t : validActionsList) {
+            if (t.isNumeric()) {
+                validActionsArray.put((int) ((NumberTerm) t).solve());
+            } else {
+                validActionsArray.put(Integer.parseInt(t.toString()));
+            }
+        }
+
+        if (validActionsArray.isEmpty()) {
+            throw new Exception("No valid actions provided");
+        }
+
+        // Build request JSON
+        JSONObject requestBody = new JSONObject();
+        requestBody.put("agent_id", agentName);
+        requestBody.put("state", stateArray);
+        requestBody.put("valid_actions", validActionsArray);
+        requestBody.put("reward", reward);
+        requestBody.put("done", done);
+
+        // Send HTTP request
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(RL_SERVICE_URL))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new Exception("RL service error: " + response.body());
+        }
+
+        // Parse response
+        JSONObject responseJson = new JSONObject(response.body());
+        int actionId = responseJson.getInt("action_id");
+
+        // Return action ID as number (let ASL convert to region name)
+        return un.unifies(args[4], ASSyntax.createNumber(actionId));
+    }
+}

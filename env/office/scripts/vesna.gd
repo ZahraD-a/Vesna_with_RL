@@ -130,6 +130,10 @@ func walk( target, id ):
 		target_region = get_node_or_null("/root/Root/NavigationRegion3D/Regions/" + target )
 	if target_region == null:
 		target_region = get_node_or_null("/root/Root/NavigationRegion3D/Doors/" + target )
+	if target_region == null:
+		push_error("Target not found: " + target)
+		signal_end_movement()
+		return
 	navigator.set_target_position( target_region.global_position )
 	target_movement = target
 	play_run()
