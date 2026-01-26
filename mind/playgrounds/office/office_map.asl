@@ -47,13 +47,13 @@ map_po( corridor, door_senior_office_3 ).
 map_po( corridor, door_meeting_room ).
 
 map_po( open_office, door_boss_office_1 ).
-map_po( open_office, door_boss_office_2 ).
+map_po( open_office, door_boss_office2 ).
 map_po( open_office, door_outside_1 ).
 map_po( open_office, door_outside_2 ).
 
 map_po( door_common, common ).
 map_po( door_boss_office_1, boss_office_1 ).
-map_po( door_boss_office_2, boss_office_2 ).
+map_po( door_boss_office2, boss_office_2 ).
 map_po( door_senior_office_1, senior_office_1 ).
 map_po( door_senior_office_2, senior_office_2 ).
 map_po( door_senior_office_3, senior_office_3 ).
