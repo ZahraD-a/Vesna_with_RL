@@ -3,3 +3,6 @@ mind/build/
 mind/gradle/
 mind/*.zip
 mind/jdk-*/
+
+# Assets
+env/office/addons/
