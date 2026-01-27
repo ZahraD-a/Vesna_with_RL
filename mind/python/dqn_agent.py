@@ -62,7 +62,7 @@ class ReplayBuffer:
 class DQNAgent:
     def __init__(
         self,
-        state_size: int = 11,
+        state_size: int = 22,  # Goal-conditioned: 11 current + 11 goal
         action_size: int = 11,
         hidden_size: int = 64,
         learning_rate: float = 1e-3,

@@ -98,6 +98,17 @@ neighbor(outside, open_office).
         !build_one_hot(TargetId, N, I + 1, NewAcc, StateVector).
 
 // ============================================================
+//              GOAL-CONDITIONED STATE VECTOR
+// ============================================================
+// Build combined state: [current_one_hot | goal_one_hot] = 22 dims
+// This enables the agent to learn general navigation (any start -> any goal)
+
++!build_goal_conditioned_state(CurrentRegion, GoalRegion, StateVector)
+    <-  !build_state_vector(CurrentRegion, CurrentVec);
+        !build_state_vector(GoalRegion, GoalVec);
+        .concat(CurrentVec, GoalVec, StateVector).
+
+// ============================================================
 //              VALID ACTION COMPUTATION
 // ============================================================
 // Get valid action IDs A(o_t) from RCC adjacency
@@ -117,9 +128,10 @@ neighbor(outside, open_office).
 // High-level wrapper that handles encoding/decoding
 // Calls: rl.select_action(StateVector, ValidActionIds, Reward, Done, ActionId)
 
-+!rl_select_action(CurrentRegion, Reward, Done, TargetRegion)
-    <-  // Build observation o_t (one-hot encoding)
-        !build_state_vector(CurrentRegion, StateVector);
+// Goal-conditioned version: state includes both current position and goal
++!rl_select_action(CurrentRegion, GoalRegion, Reward, Done, TargetRegion)
+    <-  // Build goal-conditioned state [current_one_hot | goal_one_hot] = 22 dims
+        !build_goal_conditioned_state(CurrentRegion, GoalRegion, StateVector);
         // Compute valid actions A(o_t) from adjacency
         !get_valid_action_ids(CurrentRegion, ValidActionIds);
         // Call RL service (domain-agnostic HTTP client)
@@ -132,21 +144,41 @@ neighbor(outside, open_office).
 // ============================================================
 // Execute exactly one room transition (via door if needed)
 
+// Training mode: use vesna.run with timeout to catch permanently stuck agents.
+// Clear stale movement beliefs before each wait to prevent signal race conditions.
+// Godot-side cooldown (_walk_cooldown) prevents premature signaling.
++!hop_to(TargetRegion)
+    :   .my_name(Me) & current_region(CurrentRegion) & neighbor(CurrentRegion, TargetRegion) & training_mode(true)
+    <-  if (po(CurrentRegion, Door) & po(Door, TargetRegion)) {
+            -movement(_, _);
+            vesna.run(Door);
+            .wait({+movement(completed, destination_reached)}, 30000);
+            -movement(_, _);
+            vesna.run(TargetRegion);
+            .wait({+movement(completed, destination_reached)}, 30000);
+        } else {
+            -movement(_, _);
+            vesna.run(TargetRegion);
+            .wait({+movement(completed, destination_reached)}, 30000);
+        }
+        -movement(_, _);
+        -current_region(_);
+        +current_region(TargetRegion);
+        -ntpp(Me, _);
+        +ntpp(Me, TargetRegion).
+
+// Inference mode: use vesna.walk (normal speed)
 +!hop_to(TargetRegion)
     :   .my_name(Me) & current_region(CurrentRegion) & neighbor(CurrentRegion, TargetRegion)
-    <-  // Find if there's a door between regions
-        if (po(CurrentRegion, Door) & po(Door, TargetRegion)) {
-            // Go through door
+    <-  if (po(CurrentRegion, Door) & po(Door, TargetRegion)) {
             vesna.walk(Door);
             .wait({+movement(completed, destination_reached)});
             vesna.walk(TargetRegion);
             .wait({+movement(completed, destination_reached)});
         } else {
-            // Direct connection (ec)
             vesna.walk(TargetRegion);
             .wait({+movement(completed, destination_reached)});
         }
-        // Update beliefs
         -current_region(_);
         +current_region(TargetRegion);
         -ntpp(Me, _);

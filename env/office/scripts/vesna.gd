@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 const SPEED = 10.0
+const SPEED_FAST = 80.0  # 8x speed for RL training
 const ACCELERATION = 8.0
 const JUMP_VELOCITY = 4.5
 
@@ -12,6 +13,9 @@ var regions_dict : Dictionary = {}
 var current_region = ""
 
 var end_communication = true
+var current_speed = SPEED
+var training_setup_done = false
+var _walk_cooldown: int = 0  # Suppress completion signal for N physics frames after walk()
 
 var target_movement : String = "empty"
 
@@ -32,7 +36,7 @@ func _ready() -> void:
 	for door in get_node("/root/Root/NavigationRegion3D/Doors").get_children():
 		door.get_node("Area3D").connect( "body_entered", func( body) : _on_area_body_entered( door.name, body ) )
 	play_idle()
-	
+
 func _process(delta: float) -> void:
 	while tcp_server.is_connection_available():
 		var conn : StreamPeerTCP = tcp_server.take_connection()
@@ -52,31 +56,33 @@ func _physics_process(delta: float) -> void:
 	# Add the gravity.
 	if not is_on_floor():
 		velocity += get_gravity() * delta
-		
-	#var target_direction: Vector3 = (navigator.get_next_path_position() - global_transform.origin).normalized()
-	
+
+	# Tick down walk cooldown (prevents premature completion signal)
+	if _walk_cooldown > 0:
+		_walk_cooldown -= 1
+
 	if navigator.is_target_reached() or navigator.is_navigation_finished():
 		play_idle()
 		velocity.x = 0
 		velocity.z = 0
-		if not end_communication:
+		if not end_communication and _walk_cooldown == 0:
 			signal_end_movement()
-			
+
 	elif not navigator.is_navigation_finished():
 		play_run()
 		var direction = ( navigator.get_next_path_position() - global_position ).normalized()
 		var avoidance_force = get_avoidance_force()
 		var final_direction = ( direction + avoidance_force ).normalized()
 		rotation.y = atan2( -final_direction.z, final_direction.x )
-		
-		velocity = velocity.lerp( final_direction * SPEED, ACCELERATION * delta )
-	
+
+		velocity = velocity.lerp( final_direction * current_speed, ACCELERATION * delta )
+
 	move_and_slide()
 	
 func _on_area_body_entered( region_name, body ):
 	if ( body.name == self.name ):
 		print( "Agent ", self.name, " entered region ", region_name )
-		if ( region_name == target_movement ):
+		if region_name == target_movement and _walk_cooldown == 0:
 			signal_end_movement()
 			navigator.set_target_position( global_position )
 	
@@ -103,6 +109,7 @@ func manage( intention : Dictionary ) -> void:
 	var type : String = intention[ 'type' ]
 	var data : Dictionary = intention[ 'data' ]
 	if type == 'walk':
+		current_speed = SPEED  # Normal speed
 		if data[ 'type' ] == 'goto':
 			var target : String = data[ 'target' ]
 			if data.has( 'id' ):
@@ -110,6 +117,18 @@ func manage( intention : Dictionary ) -> void:
 				walk( target, id )
 			else:
 				walk( target, -1 )
+	elif type == 'run':
+		current_speed = SPEED_FAST  # 2x speed for training
+		if data[ 'type' ] == 'goto':
+			var target : String = data[ 'target' ]
+			if data.has( 'id' ):
+				var id : int = data[ 'id' ]
+				walk( target, id )
+			else:
+				walk( target, -1 )
+	elif type == 'teleport':
+		var target : String = data[ 'target' ]
+		teleport( target )
 	elif type == 'interact':
 		if data[ 'type' ] == 'use':
 			var art_name : String = data[ 'art_name' ]
@@ -137,7 +156,63 @@ func walk( target, id ):
 	navigator.set_target_position( target_region.global_position )
 	target_movement = target
 	play_run()
+	_walk_cooldown = 5  # Suppress completion signal for 5 physics frames (~83ms)
 	end_communication = false
+
+func teleport( target : String ) -> void:
+	print("Teleporting to ", target)
+
+	if not training_setup_done:
+		_setup_training()
+		training_setup_done = true
+
+	var target_node = get_node_or_null("/root/Root/NavigationRegion3D/Regions/" + target)
+	if target_node == null:
+		push_error("Teleport target not found: " + target)
+		return
+
+	# Reset state
+	navigator.set_target_position(global_position)
+	target_movement = "empty"
+	end_communication = true
+	velocity = Vector3.ZERO
+
+	# Random position within the region
+	var box : BoxShape3D = target_node.get_node("CollisionShape3D").shape
+	var half = box.size / 2
+	var origin = target_node.global_position
+	global_position = Vector3(
+		origin.x + randf_range(-half.x, half.x),
+		origin.y,
+		origin.z + randf_range(-half.z, half.z)
+	)
+
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	navigator.set_target_position(global_position)
+
+	# Send completion
+	var log = {"sender": "body", "receiver": "vesna", "type": "signal",
+	           "data": {"type": "teleport", "status": "completed", "reason": target}}
+	ws.send_text(JSON.stringify(log))
+
+func _setup_training() -> void:
+	print("=== TRAINING MODE: Hiding furniture and other agents ===")
+	# Hide furniture
+	var nav = get_node("/root/Root/NavigationRegion3D")
+	for child_name in ["Reception", "Common", "Office1", "Office2", "Office3", "Office4", "Office5", "OpenOffice", "CogressRoom", "Outdoor"]:
+		var node = nav.get_node_or_null(child_name)
+		if node:
+			node.visible = false
+			# Disable collision on all children
+			for descendant in node.get_children():
+				if descendant is StaticBody3D:
+					descendant.process_mode = Node.PROCESS_MODE_DISABLED
+	# Hide other agents
+	for agent in get_tree().get_nodes_in_group("agents"):
+		if agent != self:
+			agent.visible = false
+			agent.process_mode = Node.PROCESS_MODE_DISABLED
 
 func get_obj_from_group( art_name : String, group_name : String ):
 	var group_objs = get_tree().get_nodes_in_group( group_name )

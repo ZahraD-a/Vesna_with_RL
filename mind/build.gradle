@@ -34,6 +34,16 @@ task run (type: JavaExec, dependsOn: 'classes') {
     classpath sourceSets.main.runtimeClasspath
 }
 
+task runRL (type: JavaExec, dependsOn: 'classes') {
+    description 'runs the RL training'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_rl.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    // Larger font for MAS Console
+    jvmArgs '-Dswing.aatext=true', '-Dawt.useSystemAAFontSettings=on', '-Dswing.plaf.metal.controlFont=Dialog-16', '-Dswing.plaf.metal.userFont=Dialog-16'
+}
+
 javadoc {
     destinationDir = file( "$buildDir/docs/javadoc" )
     options.memberLevel = JavadocMemberLevel.PRIVATE
