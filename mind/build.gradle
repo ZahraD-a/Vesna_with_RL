@@ -34,6 +34,14 @@ task run (type: JavaExec, dependsOn: 'classes') {
     classpath sourceSets.main.runtimeClasspath
 }
 
+task runRL (type: JavaExec, dependsOn: 'classes') {
+    description 'runs the RL agent'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_rl.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
 javadoc {
     destinationDir = file( "$buildDir/docs/javadoc" )
     options.memberLevel = JavadocMemberLevel.PRIVATE

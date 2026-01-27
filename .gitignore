@@ -1,8 +1,94 @@
+# =============================================================================
+# VEsNA RL Project .gitignore
+# =============================================================================
+
+# Logs
+logs/
+
+# =============================================================================
+# Gradle / JaCaMo Build
+# =============================================================================
 mind/.gradle/
 mind/build/
 mind/gradle/
 mind/*.zip
 mind/jdk-*/
 
-# Assets
+# =============================================================================
+# Python
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+mind/python/.venv/
+
+# RL checkpoints and training artifacts
+mind/python/checkpoints/
+mind/python/*.pt
+mind/python/*.pth
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =============================================================================
+# Godot
+# =============================================================================
+
+# Godot cache
+env/office/.godot/
+
+# Godot addons (if not needed in repo)
 env/office/addons/
+env/office/addons/kenney_nature-kit/Side/
+
+# Godot executables (large binaries)
+Godot_v*
+*.x86_64
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# OS
+# =============================================================================
+.DS_Store
+Thumbs.db

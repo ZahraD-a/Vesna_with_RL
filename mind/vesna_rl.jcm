@@ -1,0 +1,13 @@
+// JCM configuration for RL training
+// Only alice_rl agent - learning to find coffee
+
+mas vesna_rl {
+
+    agent alice:alice_rl.asl {
+        ag-class:   vesna.VesnaAgent
+        address:    localhost
+        port:       9080
+        goals:      start
+    }
+
+}
