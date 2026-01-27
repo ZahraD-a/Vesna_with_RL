@@ -111,6 +111,7 @@ class DQNAgent:
 
         self.episode = 0
         self.steps = 0
+        self.eval_mode = False
 
         # previous (o_{t-1}, a_{t-1}) so we can store transition when r_t arrives
         self.prev_state: Optional[np.ndarray] = None
@@ -134,11 +135,28 @@ class DQNAgent:
             q = self.policy_net(o).squeeze(0)
             return self._masked_argmax(q, valid_actions)
 
+    def set_eval_mode(self, enabled: bool = True) -> None:
+        """Switch between inference (eval) and training mode."""
+        self.eval_mode = enabled
+        if enabled:
+            self.policy_net.eval()
+        else:
+            self.policy_net.train()
+
     def step(self, state: np.ndarray, valid_actions: List[int], reward: float, done: bool) -> int:
         """
         Called with the CURRENT observation o_t and the reward/done that correspond
         to the PREVIOUS action (transition into o_t).
         """
+        # Eval mode: pure greedy inference, no training
+        if self.eval_mode:
+            if done:
+                return int(valid_actions[0])
+            with torch.no_grad():
+                o = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                q = self.policy_net(o).squeeze(0)
+                return self._masked_argmax(q, valid_actions)
+
         # If we have (o_{t-1}, a_{t-1}), we can store transition using r_t and o_t
         if self.prev_state is not None and self.prev_action is not None:
             self.memory.push(Transition(
@@ -211,6 +229,7 @@ class DQNAgent:
             "epsilon": float(round(self.epsilon, 4)),
             "steps": int(self.steps),
             "buffer_size": int(len(self.memory)),
+            "eval_mode": bool(self.eval_mode),
         }
 
     def save(self, path: str) -> None:

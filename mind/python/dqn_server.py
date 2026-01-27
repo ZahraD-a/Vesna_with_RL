@@ -3,8 +3,9 @@ DQN REST API Server for VEsNA RL Service.
 
 Contract:
 - Jason computes reward and done (reward machine stays in Jason).
-- Python receives observation o_t (here: 11-dim one-hot), valid actions, and
-  the reward/done from the PREVIOUS transition, then returns the next action.
+- Python receives observation o_t (22-dim: current_one_hot | goal_one_hot),
+  valid actions, and the reward/done from the PREVIOUS transition, then
+  returns the next action.
 
 Endpoints:
   POST /select_action  - action selection + (optional) training on previous transition
@@ -33,13 +34,15 @@ logger = logging.getLogger("vesna-rl-service")
 
 app = Flask(__name__)
 
+CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "checkpoints")
+
 agents: Dict[str, DQNAgent] = {}
 
 
 def get_or_create_agent(agent_id: str) -> DQNAgent:
     if agent_id not in agents:
         logger.info("Creating new agent: %s", agent_id)
-        agents[agent_id] = DQNAgent(state_size=11, action_size=11)
+        agents[agent_id] = DQNAgent(state_size=22, action_size=11)
     return agents[agent_id]
 
 
@@ -75,7 +78,7 @@ def select_action():
     Request JSON:
     {
       "agent_id": "alice",
-      "state": [..11 floats..],      # o_t, one-hot region
+      "state": [..22 floats..],      # o_t, [current_one_hot | goal_one_hot]
       "valid_actions": [1,4, ...],   # A(o_t), neighbors only
       "reward": -1.0,               # reward from previous transition (arrived at this state)
       "done": false                 # whether previous transition ended episode
@@ -96,11 +99,11 @@ def select_action():
 
         state_raw = data.get("state", None)
         if not isinstance(state_raw, list):
-            return _bad_request("state must be a list of length 11")
+            return _bad_request("state must be a list of length 22")
 
         state = np.asarray(state_raw, dtype=np.float32)
-        if state.shape != (11,):
-            return _bad_request("state must have exactly 11 elements")
+        if state.shape != (22,):
+            return _bad_request("state must have exactly 22 elements")
 
         agent = get_or_create_agent(agent_id)
         valid_actions = _parse_valid_actions(data.get("valid_actions", None), agent.action_size)
@@ -115,12 +118,13 @@ def select_action():
             done=done,
         )
 
+        mode = "EVAL" if agent.eval_mode else f"eps={agent.epsilon:.3f}"
         logger.info(
-            "[%s] ep=%d eps=%.3f o=%d valid=%s r=%.2f done=%s -> a=%d",
+            "[%s] ep=%d %s o=%d valid=%s r=%.2f done=%s -> a=%d",
             agent_id,
             agent.episode,
-            agent.epsilon,
-            int(state.argmax()),
+            mode,
+            int(state[:11].argmax()),
             valid_actions,
             reward,
             done,
@@ -170,20 +174,27 @@ def save(agent_id: str):
     if agent_id not in agents:
         return jsonify({"error": f"Agent {agent_id} not found"}), 404
 
-    os.makedirs("checkpoints", exist_ok=True)
-    path = f"checkpoints/{agent_id}.pt"
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    path = os.path.join(CHECKPOINT_DIR, f"{agent_id}.pt")
     agents[agent_id].save(path)
     return jsonify({"status": "ok", "path": path})
 
 
 @app.route("/load/<agent_id>", methods=["POST"])
 def load(agent_id: str):
-    path = f"checkpoints/{agent_id}.pt"
+    path = os.path.join(CHECKPOINT_DIR, f"{agent_id}.pt")
     if not os.path.exists(path):
         return jsonify({"error": f"Checkpoint not found: {path}"}), 404
 
     agent = get_or_create_agent(agent_id)
     agent.load(path)
+
+    # Enable eval mode if requested (inference only, no training)
+    data = request.get_json(silent=True) or {}
+    if data.get("eval", False):
+        agent.set_eval_mode(True)
+        logger.info("[%s] Eval mode ENABLED (inference only)", agent_id)
+
     return jsonify({"status": "ok", "stats": agent.get_stats()})
 
 

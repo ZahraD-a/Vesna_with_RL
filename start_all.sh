@@ -34,6 +34,7 @@ echo -e "\n${YELLOW}[2/3] Starting Python RL Service...${NC}"
 
 cd "$VESNA_ROOT/mind/python"
 source .venv/bin/activate
+export CHECKPOINT_DIR="$VESNA_ROOT/checkpoints"
 python dqn_server.py > "$LOGS_DIR/rl_service.log" 2>&1 &
 PYTHON_PID=$!
 
@@ -55,8 +56,13 @@ for i in {1..10}; do
     sleep 1
 done
 
+# Load trained checkpoint in eval mode (inference only, no training)
+echo -e "${YELLOW}  Loading alice.pt checkpoint (eval mode)...${NC}"
+LOAD_RESP=$(curl -s -X POST -H "Content-Type: application/json" -d '{"eval": true}' http://localhost:5000/load/alice)
+echo -e "${GREEN}  [OK] Loaded checkpoint: $LOAD_RESP${NC}"
+
 # Step 3: Start JaCaMo (RL version)
-echo -e "\n${YELLOW}[3/3] Starting JaCaMo (RL Training)...${NC}"
+echo -e "\n${YELLOW}[3/3] Starting JaCaMo (Policy Evaluation)...${NC}"
 cd "$VESNA_ROOT"
 
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
@@ -65,7 +71,7 @@ echo -e "${GREEN}[OK] Starting JaCaMo...${NC}"
 echo -e "${YELLOW}  Press Ctrl+C to stop all processes${NC}"
 echo ""
 echo -e "${CYAN}======================================${NC}"
-echo -e "${CYAN}  System Running - Watch the Training${NC}"
+echo -e "${CYAN}  System Running - Policy Evaluation${NC}"
 echo -e "${CYAN}======================================${NC}"
 echo ""
 

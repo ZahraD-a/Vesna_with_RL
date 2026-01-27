@@ -85,6 +85,13 @@ neighbor(outside, open_office).
     :   region_id(Region, RegionId) & num_regions(N)
     <-  !build_one_hot(RegionId, N, 0, [], StateVector).
 
+// Goal-conditioned state: [current_one_hot(11) | goal_one_hot(11)] = 22-dim
++!build_goal_state_vector(CurrentRegion, GoalRegion, StateVector)
+    :   region_id(CurrentRegion, CurrentId) & region_id(GoalRegion, GoalId) & num_regions(N)
+    <-  !build_one_hot(CurrentId, N, 0, [], CurrentVec);
+        !build_one_hot(GoalId, N, 0, [], GoalVec);
+        .concat(CurrentVec, GoalVec, StateVector).
+
 +!build_one_hot(TargetId, N, N, Acc, StateVector)
     <-  .reverse(Acc, StateVector).
 
@@ -117,9 +124,9 @@ neighbor(outside, open_office).
 // High-level wrapper that handles encoding/decoding
 // Calls: rl.select_action(StateVector, ValidActionIds, Reward, Done, ActionId)
 
-+!rl_select_action(CurrentRegion, Reward, Done, TargetRegion)
-    <-  // Build observation o_t (one-hot encoding)
-        !build_state_vector(CurrentRegion, StateVector);
++!rl_select_action(CurrentRegion, GoalRegion, Reward, Done, TargetRegion)
+    <-  // Build goal-conditioned observation o_t (22-dim: current | goal)
+        !build_goal_state_vector(CurrentRegion, GoalRegion, StateVector);
         // Compute valid actions A(o_t) from adjacency
         !get_valid_action_ids(CurrentRegion, ValidActionIds);
         // Call RL service (domain-agnostic HTTP client)
@@ -128,9 +135,23 @@ neighbor(outside, open_office).
         ?id_to_region(ActionId, TargetRegion).
 
 // ============================================================
+//              EMBODIED SPATIAL PERCEPTION
+// ============================================================
+// When the body enters a region, Godot sends a region_entered signal.
+// This trigger updates beliefs automatically — the body informs the mind.
+
++region_entered(Region, _)
+    :   .my_name(Me)
+    <-  -current_region(_);
+        +current_region(Region);
+        -ntpp(Me, _);
+        +ntpp(Me, Region).
+
+// ============================================================
 //              SINGLE ROOM HOP (One RL step = one hop)
 // ============================================================
 // Execute exactly one room transition (via door if needed)
+// Beliefs are updated automatically by +region_entered perception.
 
 +!hop_to(TargetRegion)
     :   .my_name(Me) & current_region(CurrentRegion) & neighbor(CurrentRegion, TargetRegion)
@@ -146,7 +167,7 @@ neighbor(outside, open_office).
             vesna.walk(TargetRegion);
             .wait({+movement(completed, destination_reached)});
         }
-        // Update beliefs
+        // Update beliefs (fallback — +region_entered may also fire from body)
         -current_region(_);
         +current_region(TargetRegion);
         -ntpp(Me, _);

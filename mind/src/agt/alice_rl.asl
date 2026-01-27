@@ -11,22 +11,26 @@
 // ============================================================
 //              AGENT-SPECIFIC CONFIGURATION
 // ============================================================
-goal_region(common).
-start_region(senior_office_2).
+goal_region(meeting_room).
+start_position(110.3, 4.2, -20.0).
 max_steps(50).
 
 // ============================================================
 //                    AGENT START
 // ============================================================
 +!start
-    :   .my_name(Me) & start_region(StartRegion)
-    <-  +ntpp(Me, StartRegion);
-        +current_region(StartRegion);
+    :   goal_region(GoalRegion)
+    <-  // Teleport body to start position (coordinates)
+        ?start_position(X, Y, Z);
+        vesna.teleport(X, Y, Z);
+        .wait({+movement(completed, destination_reached)});
+        // Beliefs auto-set by +region_entered perception from body
+        ?current_region(ActualRegion);
         .print("");
         .print("============================================");
         .print("ALICE RL - Learning Agent Started");
-        .print("Location: ", StartRegion);
-        .print("Goal: Reach ", common);
+        .print("Location: ", ActualRegion);
+        .print("Goal: Reach ", GoalRegion);
         .print("============================================");
         .print("");
         !run_episodes.
@@ -50,11 +54,10 @@ max_steps(50).
         !rl_loop.
 
 +!reset_position
-    :   .my_name(Me) & start_region(StartRegion)
-    <-  -current_region(_);
-        +current_region(StartRegion);
-        -ntpp(Me, _);
-        +ntpp(Me, StartRegion).
+    <-  ?start_position(X, Y, Z);
+        vesna.teleport(X, Y, Z);
+        .wait({+movement(completed, destination_reached)}).
+        // Beliefs auto-set by +region_entered perception from body
 
 // ============================================================
 //                    RL TRAINING LOOP
@@ -66,7 +69,7 @@ max_steps(50).
         ?episode(Ep);
         .print("*** GOAL REACHED in ", S, " steps! ***");
         // Final call to RL service with done=true and reward=+100
-        !rl_select_action(Region, 100.0, true, _);
+        !rl_select_action(Region, Region, 100.0, true, _);
         // Update stats
         ?episode_reward(ER);
         NewER = ER + 100;
@@ -81,9 +84,10 @@ max_steps(50).
     <-  // Timeout
         ?episode(Ep);
         ?current_region(Region);
+        ?goal_region(GoalRegion);
         .print("*** TIMEOUT at step ", S, " ***");
         // Final call with done=true and timeout penalty
-        !rl_select_action(Region, -10.0, true, _);
+        !rl_select_action(Region, GoalRegion, -10.0, true, _);
         ?episode_reward(ER);
         NewER = ER - 10;
         -episode_reward(_);
@@ -94,9 +98,10 @@ max_steps(50).
 +!rl_loop
     :   current_region(Region) & step(S)
     <-  // Normal step
-        .print("Step ", S, ": at ", Region);
+        ?goal_region(GoalRegion);
+        .print("Step ", S, ": at ", Region, " (goal: ", GoalRegion, ")");
         // Get action from RL service (reward = -1 per step)
-        !rl_select_action(Region, -1.0, false, TargetRegion);
+        !rl_select_action(Region, GoalRegion, -1.0, false, TargetRegion);
         .print("  -> RL selected: ", TargetRegion);
         // Execute single room hop
         !hop_to(TargetRegion);
@@ -122,4 +127,4 @@ max_steps(50).
         .wait(1000);
         !run_episode.
 
-// Note: common-cartago.asl and common-moise.asl are already included via vesna.asl
+// Note: outside-cartago.asl and outside-moise.asl are already included via vesna.asl

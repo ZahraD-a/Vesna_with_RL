@@ -28,9 +28,9 @@ func _ready() -> void:
 		push_error( "Unable to start the srver" )
 		set_process( false )
 	for region in get_node( "/root/Root/NavigationRegion3D/Regions").get_children():
-		region.connect( "body_entered", func( body) : _on_area_body_entered( region.name, body ) )
+		region.connect( "body_entered", func( body) : _on_region_body_entered( region.name, body ) )
 	for door in get_node("/root/Root/NavigationRegion3D/Doors").get_children():
-		door.get_node("Area3D").connect( "body_entered", func( body) : _on_area_body_entered( door.name, body ) )
+		door.get_node("Area3D").connect( "body_entered", func( body) : _on_door_body_entered( door.name, body ) )
 	play_idle()
 	
 func _process(delta: float) -> void:
@@ -73,10 +73,18 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	
-func _on_area_body_entered( region_name, body ):
+func _on_region_body_entered( region_name, body ):
 	if ( body.name == self.name ):
 		print( "Agent ", self.name, " entered region ", region_name )
+		signal_region_entered( region_name )
 		if ( region_name == target_movement ):
+			signal_end_movement()
+			navigator.set_target_position( global_position )
+
+func _on_door_body_entered( door_name, body ):
+	if ( body.name == self.name ):
+		print( "Agent ", self.name, " entered door ", door_name )
+		if ( door_name == target_movement ):
 			signal_end_movement()
 			navigator.set_target_position( global_position )
 	
@@ -110,6 +118,15 @@ func manage( intention : Dictionary ) -> void:
 				walk( target, id )
 			else:
 				walk( target, -1 )
+	elif type == 'teleport':
+		if data[ 'type' ] == 'region':
+			var target : String = data[ 'target' ]
+			teleport_to_region( target )
+		elif data[ 'type' ] == 'coordinates':
+			var x : float = data[ 'x' ]
+			var y : float = data[ 'y' ]
+			var z : float = data[ 'z' ]
+			teleport_to_position( x, y, z )
 	elif type == 'interact':
 		if data[ 'type' ] == 'use':
 			var art_name : String = data[ 'art_name' ]
@@ -138,6 +155,40 @@ func walk( target, id ):
 	target_movement = target
 	play_run()
 	end_communication = false
+
+func teleport_to_region( target : String ) -> void:
+	var target_node = get_node_or_null("/root/Root/NavigationRegion3D/Regions/" + target )
+	if target_node == null:
+		target_node = get_node_or_null("/root/Root/NavigationRegion3D/Markers/" + target )
+	if target_node == null:
+		target_node = get_node_or_null("/root/Root/NavigationRegion3D/Doors/" + target )
+	if target_node == null:
+		push_error("Teleport target not found: " + target)
+		signal_end_movement()
+		return
+	var pos = target_node.global_position
+	# Snap to nearest valid navmesh point
+	var map_rid = NavigationServer3D.get_maps()[0]
+	pos = NavigationServer3D.map_get_closest_point(map_rid, pos)
+	global_position = pos
+	navigator.set_target_position( global_position )
+	print("Teleported ", self.name, " to region ", target, " at ", pos)
+	signal_region_entered( target )
+	signal_end_movement()
+
+func teleport_to_position( x : float, y : float, z : float ) -> void:
+	var pos = Vector3(x, y, z)
+	# Snap to nearest valid navmesh point
+	var map_rid = NavigationServer3D.get_maps()[0]
+	pos = NavigationServer3D.map_get_closest_point(map_rid, pos)
+	global_position = pos
+	navigator.set_target_position( global_position )
+	# Find nearest region to inform the mind
+	var nearest_region = _find_nearest_region( pos )
+	print("Teleported ", self.name, " to coordinates ", pos, " (nearest region: ", nearest_region, ")")
+	if nearest_region != "":
+		signal_region_entered( nearest_region )
+	signal_end_movement()
 
 func get_obj_from_group( art_name : String, group_name : String ):
 	var group_objs = get_tree().get_nodes_in_group( group_name )
@@ -182,6 +233,31 @@ func release( art_name : String ):
 	art.transform.origin = Vector3.ZERO
 	print( "I release " + art_name )
 	
+func signal_region_entered( region_name : String ) -> void:
+	if ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return
+	var log : Dictionary = {}
+	log[ 'sender' ] = 'body'
+	log[ 'receiver' ] = 'vesna'
+	log[ 'type' ] = 'signal'
+	var msg : Dictionary = {}
+	msg[ 'type' ] = 'region_entered'
+	msg[ 'status' ] = region_name
+	msg[ 'reason' ] = 'body_entered'
+	log[ 'data' ] = msg
+	ws.send_text( JSON.stringify( log ) )
+
+func _find_nearest_region( pos : Vector3 ) -> String:
+	var regions = get_node( "/root/Root/NavigationRegion3D/Regions" ).get_children()
+	var nearest_name = ""
+	var nearest_dist = INF
+	for region in regions:
+		var dist = region.global_position.distance_to( pos )
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest_name = region.name
+	return nearest_name
+
 func signal_end_movement( ) -> void:
 	target_movement = "empty"
 	var log : Dictionary = {}
