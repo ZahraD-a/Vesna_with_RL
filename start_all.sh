@@ -4,7 +4,7 @@
 
 set -e  # Exit on error
 
-VESNA_ROOT="/home/hamid/Desktop/Projects/Vesna_RL"
+VESNA_ROOT="$(cd "$(dirname "$0")" && pwd)"
 LOGS_DIR="$VESNA_ROOT/logs"
 mkdir -p "$LOGS_DIR"
 
@@ -22,7 +22,7 @@ echo -e "${CYAN}======================================${NC}"
 # Step 1: Start Godot
 echo -e "\n${YELLOW}[1/3] Starting Godot Environment...${NC}"
 
-"$VESNA_ROOT/Godot_v4.5.1-stable_linux.x86_64" --path "$VESNA_ROOT/env/office" > "$LOGS_DIR/godot.log" 2>&1 &
+"/c/Users/zahra/Desktop/softwares/Godot_v4.5.1-stable_win64.exe/Godot_v4.5.1-stable_win64.exe" --path "$VESNA_ROOT/env/office" > "$LOGS_DIR/godot.log" 2>&1 &
 GODOT_PID=$!
 
 echo -e "${GREEN}[OK] Godot started (PID: $GODOT_PID)${NC}"
@@ -33,8 +33,7 @@ sleep 3
 echo -e "\n${YELLOW}[2/3] Starting Python RL Service...${NC}"
 
 cd "$VESNA_ROOT/mind/python"
-source .venv/bin/activate
-export CHECKPOINT_DIR="$VESNA_ROOT/checkpoints"
+source .venv/Scripts/activate
 python dqn_server.py > "$LOGS_DIR/rl_service.log" 2>&1 &
 PYTHON_PID=$!
 
@@ -56,22 +55,19 @@ for i in {1..10}; do
     sleep 1
 done
 
-# Load trained checkpoint in eval mode (inference only, no training)
-echo -e "${YELLOW}  Loading alice.pt checkpoint (eval mode)...${NC}"
-LOAD_RESP=$(curl -s -X POST -H "Content-Type: application/json" -d '{"eval": true}' http://localhost:5000/load/alice)
-echo -e "${GREEN}  [OK] Loaded checkpoint: $LOAD_RESP${NC}"
-
 # Step 3: Start JaCaMo (RL version)
-echo -e "\n${YELLOW}[3/3] Starting JaCaMo (Policy Evaluation)...${NC}"
+echo -e "\n${YELLOW}[3/3] Starting JaCaMo (RL Training)...${NC}"
 cd "$VESNA_ROOT"
 
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export JAVA_HOME="$VESNA_ROOT/mind/jdk-17.0.13+11"
+unset JASON_HOME
+rm -rf ~/.jason 2>/dev/null
 
 echo -e "${GREEN}[OK] Starting JaCaMo...${NC}"
 echo -e "${YELLOW}  Press Ctrl+C to stop all processes${NC}"
 echo ""
 echo -e "${CYAN}======================================${NC}"
-echo -e "${CYAN}  System Running - Policy Evaluation${NC}"
+echo -e "${CYAN}  System Running - Watch the Training${NC}"
 echo -e "${CYAN}======================================${NC}"
 echo ""
 
