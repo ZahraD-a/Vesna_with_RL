@@ -111,7 +111,8 @@ def select_action():
         reward = float(data.get("reward", 0.0))
         done = bool(data.get("done", False))
 
-        action_id = agent.step(
+        # Get action AND Q-values for explainability
+        action_id, q_values, exploration = agent.step_with_explanation(
             state=state,
             valid_actions=valid_actions,
             reward=reward,
@@ -131,7 +132,18 @@ def select_action():
             action_id,
         )
 
-        return jsonify({"action_id": int(action_id)})
+        # Build explainable response
+        response = {
+            "action_id": int(action_id),
+            "explanation": {
+                "q_values": {str(a): round(q_values[a], 4) for a in valid_actions} if q_values is not None else {},
+                "selected_q": round(q_values[action_id], 4) if q_values is not None else None,
+                "exploration": exploration,  # "greedy" or "epsilon_random"
+                "mode": "inference" if agent.eval_mode else "training",
+                "epsilon": round(agent.epsilon, 4) if not agent.eval_mode else 0.0,
+            }
+        }
+        return jsonify(response)
 
     except Exception as e:
         logger.exception("Error in /select_action")

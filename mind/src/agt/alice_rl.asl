@@ -11,8 +11,9 @@
 // ============================================================
 //              AGENT-SPECIFIC CONFIGURATION
 // ============================================================
-goal_region(meeting_room).
-start_position(110.3, 4.2, -20.0).
+goal_region(meeting_room).  // this is the target region to reach  the agent is not learning/training here 
+//  training is done in pure_python_training or visual_python_training branches on github.
+start_position(110.3, 4.2, -20.0). // this can be anything  on X Y Z coordinates 
 max_steps(50).
 
 // ============================================================

@@ -148,15 +148,32 @@ class DQNAgent:
         Called with the CURRENT observation o_t and the reward/done that correspond
         to the PREVIOUS action (transition into o_t).
         """
+        action, _, _ = self.step_with_explanation(state, valid_actions, reward, done)
+        return action
+
+    def step_with_explanation(
+        self, state: np.ndarray, valid_actions: List[int], reward: float, done: bool
+    ) -> Tuple[int, Optional[np.ndarray], str]:
+        """
+        Same as step() but returns (action, q_values, exploration_type) for explainability.
+
+        Returns:
+            action: The selected action ID
+            q_values: numpy array of Q-values for all actions (or None if random)
+            exploration: "greedy", "epsilon_random", or "done"
+        """
         # Eval mode: pure greedy inference, no training
         if self.eval_mode:
             if done:
-                return int(valid_actions[0])
+                return int(valid_actions[0]), None, "done"
             with torch.no_grad():
                 o = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
                 q = self.policy_net(o).squeeze(0)
-                return self._masked_argmax(q, valid_actions)
+                q_numpy = q.cpu().numpy()
+                action = self._masked_argmax(q, valid_actions)
+                return int(action), q_numpy, "greedy"
 
+        # Training mode: store transitions and learn
         # If we have (o_{t-1}, a_{t-1}), we can store transition using r_t and o_t
         if self.prev_state is not None and self.prev_action is not None:
             self.memory.push(Transition(
@@ -180,13 +197,27 @@ class DQNAgent:
 
             self.prev_state = None
             self.prev_action = None
-            return int(valid_actions[0])  # not used if Jason ends the episode properly
+            return int(valid_actions[0]), None, "done"
 
-        action = self.select_action(state, valid_actions)
-        self.prev_state = state.copy()
-        self.prev_action = int(action)
-        self.steps += 1
-        return int(action)
+        # Epsilon-greedy action selection with explanation
+        if random.random() < self.epsilon:
+            # Random exploration
+            action = int(random.choice(valid_actions))
+            self.prev_state = state.copy()
+            self.prev_action = int(action)
+            self.steps += 1
+            return int(action), None, "epsilon_random"
+        else:
+            # Greedy action with Q-values
+            with torch.no_grad():
+                o = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+                q = self.policy_net(o).squeeze(0)
+                q_numpy = q.cpu().numpy()
+                action = self._masked_argmax(q, valid_actions)
+            self.prev_state = state.copy()
+            self.prev_action = int(action)
+            self.steps += 1
+            return int(action), q_numpy, "greedy"
 
     def _train_batch(self) -> None:
         batch = self.memory.sample(self.batch_size)
