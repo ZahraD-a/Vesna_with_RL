@@ -136,11 +136,11 @@ def select_action():
         response = {
             "action_id": int(action_id),
             "explanation": {
-                "q_values": {str(a): round(q_values[a], 4) for a in valid_actions} if q_values is not None else {},
-                "selected_q": round(q_values[action_id], 4) if q_values is not None else None,
+                "q_values": {str(a): float(round(q_values[a], 4)) for a in valid_actions} if q_values is not None else {},
+                "selected_q": float(round(q_values[action_id], 4)) if q_values is not None else None,
                 "exploration": exploration,  # "greedy" or "epsilon_random"
                 "mode": "inference" if agent.eval_mode else "training",
-                "epsilon": round(agent.epsilon, 4) if not agent.eval_mode else 0.0,
+                "epsilon": float(round(agent.epsilon, 4)) if not agent.eval_mode else 0.0,
             }
         }
         return jsonify(response)
