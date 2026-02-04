@@ -110,7 +110,7 @@ public class select_action extends DefaultInternalAction {
         // ====================================================================
         logRLDecision(agentName, stateArray, validActionsArray, reward, done, actionId, responseJson);
 
-        // Return action ID as number (let ASL convert to region name)
+        // Return action ID as number (let ASL convert to region name)....Return to Jason
         return un.unifies(args[4], ASSyntax.createNumber(actionId));
     }
 

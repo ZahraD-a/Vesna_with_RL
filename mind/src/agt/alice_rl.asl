@@ -11,17 +11,26 @@
 // ============================================================
 //              AGENT-SPECIFIC CONFIGURATION
 // ============================================================
-goal_region(meeting_room).  // this is the target region to reach  the agent is not learning/training here 
+goal_region(meeting_room).  // this is the target region to reach  the agent is not learning/training here
 //  training is done in pure_python_training or visual_python_training branches on github.
-start_position(110.3, 4.2, -20.0). // this can be anything  on X Y Z coordinates 
+
+//
+start_position(140.3, 4.2, -20.0). // this can be anything  on X Y Z coordinates
 max_steps(50).
+
+// RL Mode: true = inference only (use trained policy), false = continue training
+eval_mode(true).
 
 // ============================================================
 //                    AGENT START
 // ============================================================
 +!start
-    :   goal_region(GoalRegion)
-    <-  // Teleport body to start position (coordinates)
+    :   goal_region(GoalRegion) & eval_mode(EvalMode)
+    <-  // Load trained model from checkpoint (if exists)
+        // EvalMode: true = inference only, false = continue training
+        rl.load_model(EvalMode);
+
+        // Teleport body to start position (coordinates)
         ?start_position(X, Y, Z);
         vesna.teleport(X, Y, Z);
         .wait({+movement(completed, destination_reached)});
@@ -29,7 +38,11 @@ max_steps(50).
         ?current_region(ActualRegion);
         .print("");
         .print("============================================");
-        .print("ALICE RL - Learning Agent Started");
+        if (EvalMode) {
+            .print("ALICE RL - Inference Mode (using trained policy)");
+        } else {
+            .print("ALICE RL - Training Mode (learning enabled)");
+        };
         .print("Location: ", ActualRegion);
         .print("Goal: Reach ", GoalRegion);
         .print("============================================");

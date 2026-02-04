@@ -129,9 +129,9 @@ neighbor(outside, open_office).
         !build_goal_state_vector(CurrentRegion, GoalRegion, StateVector);
         // Compute valid actions A(o_t) from adjacency
         !get_valid_action_ids(CurrentRegion, ValidActionIds);
-        // Call RL service (domain-agnostic HTTP client)
+        // Call RL service (domain-agnostic HTTP client) ,,  Calls Java internal action
         rl.select_action(StateVector, ValidActionIds, Reward, Done, ActionId);
-        // Convert action ID back to region name
+        // Convert action ID back to region name,, that we get from select_action.java
         ?id_to_region(ActionId, TargetRegion).
 
 // ============================================================
@@ -140,7 +140,7 @@ neighbor(outside, open_office).
 // When the body enters a region, Godot sends a region_entered signal.
 // This trigger updates beliefs automatically — the body informs the mind.
 
-+region_entered(Region, _)
++region_entered(Region, _) // belief is added
     :   .my_name(Me)
     <-  -current_region(_);
         +current_region(Region);
