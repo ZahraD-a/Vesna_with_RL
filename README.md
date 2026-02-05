@@ -15,33 +15,7 @@ NOVAE addresses a fundamental challenge in autonomous agent design: enabling ada
 
 NOVAE implements a **three-layer architecture** that cleanly separates symbolic reasoning from neural learning:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     SYMBOLIC LAYER (Jason)                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  │   RCC-8 Spatial │  │  BDI Goal/Belief│  │     Reward      │  │
-│  │   Knowledge     │  │   Evaluation    │  │   Computation   │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                  NEURO-SYMBOLIC INTERFACE                        │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  │  State Encoding │  │  Action Masking │  │   Bidirectional │  │
-│  │   (One-Hot)     │  │   (RCC-8)       │  │   Translation   │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                    NEURAL LAYER (Python/PyTorch)                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  │   DQN Network   │  │ Experience      │  │  Target Network │  │
-│  │   (64-64-11)    │  │ Replay Buffer   │  │  Updates        │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Components
+ 
 
 1. **Symbolic Layer** (Jason/JaCaMo)
    - Maintains spatial knowledge as qualitative RCC-8 relations
@@ -149,30 +123,7 @@ cd mind
 ## Current Scenario: Office Navigation
 
 The agent (Alice) learns to navigate a 3D office environment with 11 regions:
-
-```
-                    ┌─────────────┐
-                    │   outside   │
-                    └──────┬──────┘
-                           │
-┌──────────┬───────────────┼───────────────┬──────────┐
-│boss_off_1│               │               │boss_off_2│
-└────┬─────┘         ┌─────┴─────┐         └────┬─────┘
-     │               │open_office│              │
-     └───────────────┴─────┬─────┴──────────────┘
-                           │
-     ┌─────────────────────┴─────────────────────┐
-     │                  corridor                  │
-     └┬────┬────┬────┬────┬────┬────┬────┬────┬─┘
-      │    │    │    │    │    │    │    │    │
-   ┌──┴┐┌──┴┐┌──┴┐┌──┴──┐ │ ┌──┴──┐ │    │    │
-   │s1 ││s2 ││s3 ││meet │ │ │comm │ │    │    │
-   └───┘└───┘└───┘└─────┘ │ └─────┘ │    │    │
-                          │         │    │    │
-                       ┌──┴───┐     │    │    │
-                       │recep │─────┘    │    │
-                       └──────┘          │    │
-```
+ 
 
 **Training Task**: Navigate from `senior_office_2` to `common` room (coffee machine).
 
