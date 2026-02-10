@@ -1,17 +1,17 @@
-// ============================================================
-//                    ALICE RL2 - Learning Agent
-// ============================================================
+// 
+//                    ALICE RL - Learning Agent
 // Navigation agent using reinforcement learning.
-// Learns to find shortest path from start to goal region.
+// Learns to find path from any start to any goal region(room).
+// episode_reward is only for logging, not sent to Python. 
+// Python computes its own returns using Bellman equation.
 // ============================================================
 
 { include("vesna.asl") }
 { include("playgrounds/office/office_map.asl") }
 { include("rl_bridge.asl") }
 
-// ============================================================
-//                    CONFIGURATION
-// ============================================================
+ 
+//------------------------------CONFIGURATION-------------
 
 max_steps(50).                  // max steps before timeout
 max_episodes(3000).              // stop training after N episodes
@@ -23,9 +23,8 @@ all_regions([reception, corridor, open_office, outside, common,
              meeting_room, senior_office_1, senior_office_2,
              senior_office_3, boss_office_1, boss_office_2]).
 
-// ============================================================
-//                    REWARD MACHINE
-// ============================================================
+
+//--------------------------------REWARD MACHINE-----------------
 // Immediate rewards sent to Python RL.
 // Python uses these in Bellman equation: Q = r + γ * max(Q_next)
 // DQN learns to PREDICT the sum, not receive it directly.
@@ -34,33 +33,21 @@ reward_goal(100.0).       // given when agent reaches goal_region
 reward_step(-1.0).        // given each step (encourages short paths)
 reward_timeout(-10.0).    // given when step >= max_steps
 
-// ============================================================
-//                    START AGENT
-// ============================================================
 
-
+//---------------------------START AGENT------------------------------------
 +!start
     :   eval_mode(EvalMode)
     <-
         // Load neural network from checkpoint (in Python)
         // EvalMode=true means inference only, no training
-        rl.load_model(EvalMode);
-
-        // Pick random start and goal for first episode
-        !randomize_start_goal;
-
-        // Teleport body to starting region
-        !go_to_start;
-
-        // Print status to console
-        !print_status(EvalMode, Goal);
-
+        rl.load_model(EvalMode);  //call the load.model file in rl folder to loading the policy from the alice.pt checkpoint file
+          .print("ALICE RL - Mode: eval=", EvalMode);
+        
         // Begin running episodes
         !run_episodes.
-
+ 
 // ============================================================
-//                    RANDOMIZE START / GOAL
-// ============================================================
+//                    RANDOMIZE START / GOAL-----
 // Picks a random start and goal region each episode.
 // Ensures start != goal for meaningful episodes.
 
@@ -97,25 +84,7 @@ reward_timeout(-10.0).    // given when step >= max_steps
         vesna.teleport(Region);
         .wait({+movement(completed, destination_reached)}).
 
-// ============================================================
-//                    PRINT STATUS
-// ============================================================
-// episode_reward is only for logging, not sent to Python.
-// Python computes its own returns using Bellman equation.
 
-+!print_status(EvalMode, _)
-    <-
-        ?current_region(Region);
-        ?goal_region(Goal);
-        .print("---------------------------------------------");
-        if (EvalMode) {
-            .print("ALICE RL - Inference Mode (using trained policy)");
-        } else {
-            .print("ALICE RL - Training Mode (learning enabled)");
-        };
-        .print("Location: ", Region);
-        .print("Goal: Reach ", Goal);
-        .print("---------------------------------------------").
 
 // ============================================================
 //                    EPISODE MANAGEMENT
@@ -172,6 +141,7 @@ reward_timeout(-10.0).    // given when step >= max_steps
         };
 
         // Clean up beliefs from this episode
+         
         -episode(_);
         -step(_);
         -episode_reward(_);
@@ -181,9 +151,8 @@ reward_timeout(-10.0).    // given when step >= max_steps
         .wait(1000);
         !run_episode.
 
-// ============================================================
-//                    RL LOOP
-// ============================================================
+
+//-------------------------RL LOOP----------------------------------
 // The decision logic IS the reward machine.
 // Each case checks state and sends appropriate reward to Python.
 
