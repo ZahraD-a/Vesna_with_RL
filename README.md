@@ -362,6 +362,8 @@ Each arrow is a real message passing between processes.
          |                          (repeat 3000 times)                 |
          |                               |                              |
 ```
+--->  Workflow 2 communication between jason and RL agent (Python) is via HTTP POST requests. Jason sends the current state, valid actions, reward, and done flag to Python. Python processes this information, updates its learning, and returns the chosen action ID back to Jason:
+![alt text](image.png)
 
 **What each layer owns:**
 
