@@ -1,8 +1,9 @@
-// 
-//                    ALICE RL - Learning Agent
-// Navigation agent using reinforcement learning.
+ 
 // Learns to find path from any start to any goal region(room).
+// only step reward sent  to pyhton 
+// Each transition only needs the immediate reward from that one step
 // episode_reward is only for logging, not sent to Python. 
+// The neural network learns to predict the total future reward by chaining steps together
 // Python computes its own returns using Bellman equation.
 // ============================================================
 
@@ -141,7 +142,7 @@ reward_timeout(-10.0).    // given when step >= max_steps
         };
 
         // Clean up beliefs from this episode
-         
+
         -episode(_);
         -step(_);
         -episode_reward(_);
