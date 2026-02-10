@@ -406,6 +406,117 @@ DQN hyperparameters are in dqn_agent.py:
 | hidden_size     | 64      | Hidden layer size in the neural network   |
 
 
+## Why Random Start and Goal (Goal-Conditioned RL)
+
+This project uses goal-conditioned reinforcement learning with randomized start and goal
+regions. This section explains why, and how it connects to established research.
+
+### The Problem with Fixed Start and Goal
+
+If the agent always trains from reception to meeting_room, it learns exactly one path.
+It cannot generalize. Drop it in boss_office_2 with a goal of open_office and it has
+never seen that situation before. The policy is useless outside the one pair it memorized.
+
+This is like studying only one exam question. You might ace that question, but you fail
+every other one.
+
+### Goal-Conditioned RL
+
+The solution comes from goal-conditioned RL, introduced by Schaul et al. in
+"Universal Value Function Approximators" (ICML 2015). The core idea: instead of
+training a separate policy for each goal, train one policy that takes the goal as input.
+
+In this project, the state vector encodes both where the agent is and where it needs to go:
+
+```
+state = [current_region_one_hot | goal_region_one_hot]
+         11 dimensions             11 dimensions
+```
+
+The neural network sees both pieces of information and learns a single policy that works
+for any start-goal combination. One network, all 110 possible pairs (11 rooms x 10 goals).
+
+Schaul et al. showed that this generalization works because similar states share similar
+Q-values. If the agent learns that corridor is useful for reaching meeting_room, that
+knowledge partially transfers to reaching senior_office_1, because corridor connects
+to both.
+
+**Reference:** Schaul, T., Horgan, D., Gregor, K., and Silver, D. "Universal Value Function
+Approximators." Proceedings of the 32nd International Conference on Machine Learning
+(ICML), 2015.
+
+### Why Randomizing Start and Goal Helps
+
+Each episode picks a random start and a random goal (ensuring they differ). This does
+three things:
+
+**1. Covers the full state space.**
+With 11 rooms and 10 possible goals per room, there are 110 start-goal combinations.
+Random sampling ensures the agent sees all of them over 3000 episodes. Each combination
+appears roughly 27 times on average, giving enough experience to learn each one.
+
+**2. Prevents overfitting to one path.**
+If the agent always starts at reception, it only learns Q-values for states reachable from
+reception. The Q-values for boss_office_2 or senior_office_3 as starting points would be
+untrained and unreliable. Randomization forces the network to learn useful values everywhere
+in the map.
+
+**3. Builds a universal navigation policy.**
+After training, the agent can be dropped in any room, given any goal, and find a short path.
+This is the whole point: one trained model handles all navigation tasks in the office.
+
+This approach relates to domain randomization, introduced by Tobin et al. in "Domain
+Randomization for Transferring Deep Neural Networks from Simulation to the Real World"
+(IROS 2017). Their key insight was that randomizing training conditions in simulation
+produces policies that are robust to variation. The same principle applies here: randomizing
+start and goal positions produces a navigation policy robust to any start-goal pair.
+
+**Reference:** Tobin, J., Fong, R., Ray, A., Schneider, J., Zaremba, W., and Abbeel, P.
+"Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real
+World." IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2017.
+
+### Hindsight Experience Replay (Related Approach)
+
+A related technique is Hindsight Experience Replay (HER) by Andrychowicz et al. (NeurIPS
+2017). HER addresses a common problem in goal-conditioned RL: the agent rarely reaches
+the goal early in training, so it gets almost no positive reward signal.
+
+HER solves this by relabeling failed episodes. If the agent was trying to reach meeting_room
+but ended up at corridor, HER creates an extra training sample where corridor was the goal.
+The agent "pretends" it succeeded, getting a +100 reward for reaching corridor. This way,
+every episode produces useful learning signal, even failures.
+
+This project does not use HER, but it handles the sparse reward problem through a
+different mechanism: the step penalty (reward_step = -1). Every step costs the agent,
+so even before it discovers the goal, it learns to avoid long wandering paths. Combined
+with epsilon-greedy exploration and 3000 episodes, the agent discovers goals often enough
+to learn without HER.
+
+**Reference:** Andrychowicz, M., Wolski, F., Ray, A., Schneider, J., Fong, R., Welinder, P.,
+McGrew, B., Tobin, J., Abbeel, P., and Zaremba, W. "Hindsight Experience Replay."
+Advances in Neural Information Processing Systems (NeurIPS), 2017.
+
+### How It Works in This Project
+
+The randomization happens in alice_rl.asl at the start of each episode:
+
+```
++!run_episode
+    :   episode(Ep)
+    <-
+        !randomize_start_goal;       // pick new random start and goal
+        ...
+```
+
+The `!randomize_start_goal` plan picks from all 11 regions, ensures start and goal differ,
+and stores them as beliefs. The rl_bridge.asl encodes both into the state vector that
+Python receives. Python never knows room names. It just sees a 22-number vector and
+learns which actions lead to high reward for each vector pattern.
+
+By episode 3000, the agent has seen enough start-goal pairs that its Q-network has learned
+a general navigation map of the entire office encoded in its weights.
+
+
 ## The Office Map
 
 11 rooms connected by doors and direct passages. Defined in office_map.asl
