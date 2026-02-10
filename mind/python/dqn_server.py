@@ -34,7 +34,9 @@ logger = logging.getLogger("vesna-rl-service")
 
 app = Flask(__name__)
 
-CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "checkpoints")
+# Resolve checkpoint dir relative to project root (two levels up from mind/python/)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", os.path.join(_PROJECT_ROOT, "checkpoints"))
 
 agents: Dict[str, DQNAgent] = {}
 

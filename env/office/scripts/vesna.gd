@@ -1,6 +1,6 @@
 extends CharacterBody3D
 
-const SPEED = 10.0
+const SPEED = 40.0
 const ACCELERATION = 8.0
 const JUMP_VELOCITY = 4.5
 
@@ -14,6 +14,9 @@ var current_region = ""
 var end_communication = true
 
 var target_movement : String = "empty"
+
+var _stuck_counter : int = 0
+var _last_position : Vector3 = Vector3.ZERO
 
 @onready var navigator : NavigationAgent3D = $NavigationAgent3D
 @onready var jump_anim = $Body/Jump
@@ -67,11 +70,30 @@ func _physics_process(delta: float) -> void:
 		var direction = ( navigator.get_next_path_position() - global_position ).normalized()
 		var avoidance_force = get_avoidance_force()
 		var final_direction = ( direction + avoidance_force ).normalized()
-		rotation.y = atan2( -final_direction.z, final_direction.x )
-		
+
 		velocity = velocity.lerp( final_direction * SPEED, ACCELERATION * delta )
-	
+
 	move_and_slide()
+
+	# Set rotation from actual post-collision velocity, not desired direction.
+	# This prevents the agent from locking perpendicular to door frames.
+	var horizontal_vel = Vector3(velocity.x, 0, velocity.z)
+	if horizontal_vel.length() > 0.1:
+		rotation.y = atan2( -horizontal_vel.z, horizontal_vel.x )
+
+	# Stuck detection: if barely moving for ~0.5s while navigating, nudge toward next waypoint
+	if not navigator.is_navigation_finished():
+		if global_position.distance_to(_last_position) < 0.05:
+			_stuck_counter += 1
+		else:
+			_stuck_counter = 0
+		_last_position = global_position
+		if _stuck_counter > 30:
+			var nudge = (navigator.get_next_path_position() - global_position).normalized()
+			global_position += nudge * 0.5
+			_stuck_counter = 0
+	else:
+		_stuck_counter = 0
 	
 func _on_region_body_entered( region_name, body ):
 	if ( body.name == self.name ):
@@ -167,21 +189,29 @@ func teleport_to_region( target : String ) -> void:
 		signal_end_movement()
 		return
 	var pos = target_node.global_position
-	# Snap to nearest valid navmesh point
-	var map_rid = NavigationServer3D.get_maps()[0]
-	pos = NavigationServer3D.map_get_closest_point(map_rid, pos)
-	global_position = pos
+	# Use target x,z but keep agent's current y (floor level)
+	global_position = Vector3(pos.x, global_position.y, pos.z)
+	# Avoid landing on top of other agents
+	var teleport_safe_dist : float = 6.0
+	for other in get_tree().get_nodes_in_group("agents"):
+		if other == self:
+			continue
+		var dist = global_position.distance_to(other.global_position)
+		if dist < teleport_safe_dist:
+			var away = (global_position - other.global_position)
+			away.y = 0
+			if away.length() < 0.01:
+				away = Vector3(1, 0, 0)
+			global_position += away.normalized() * teleport_safe_dist
 	navigator.set_target_position( global_position )
-	print("Teleported ", self.name, " to region ", target, " at ", pos)
+	print("Teleported ", self.name, " to region ", target, " at ", global_position)
 	signal_region_entered( target )
 	signal_end_movement()
 
 func teleport_to_position( x : float, y : float, z : float ) -> void:
 	var pos = Vector3(x, y, z)
-	# Snap to nearest valid navmesh point
-	var map_rid = NavigationServer3D.get_maps()[0]
-	pos = NavigationServer3D.map_get_closest_point(map_rid, pos)
-	global_position = pos
+	# Use target x,z but keep agent's current y (floor level)
+	pos = Vector3(pos.x, global_position.y, pos.z)
 	navigator.set_target_position( global_position )
 	# Find nearest region to inform the mind
 	var nearest_region = _find_nearest_region( pos )
