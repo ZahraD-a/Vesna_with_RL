@@ -17,7 +17,7 @@ Vesna_with_RL/
 |
 |__ mind/
 |   |__ src/agt/
-|   |   |__ alice_rl.asl               RL training agent (episodes, rewards, loop)
+|   |   |__ alice_rl.asl               Reward machine and episode manager
 |   |   |__ rl_bridge.asl              Codec between Jason symbols and Python numbers
 |   |   |__ vesna.asl                  Base agent (body connection via WebSocket)
 |   |   |__ rl/
@@ -191,8 +191,7 @@ STEP 4: Python picks an action
 
     The HTTP response looks like:
     {
-      "action_id": 1,
-      "explanation": { "exploration": "greedy", "q_values": {"1": 3.2, "8": 1.5} }
+      "action_id": 1
     }
 
 STEP 5: Java passes the action ID back to Jason
@@ -289,35 +288,93 @@ hop_to(meeting_room) calls vesna.walk(door) then vesna.walk(meeting_room)
 ```
 
 
-## Communication Summary
+## System Workflow
+
+The full workflow shows how the three layers communicate during training.
+Each arrow is a real message passing between processes.
 
 ```
-Godot (3D World)          Jason (Brain)              Python (Learner)
-      |                        |                          |
-      |   WebSocket            |      HTTP POST           |
-      | <--- body connected    |                          |
-      |                        |                          |
-      |                   +!start                         |
-      |                   rl.load_model ---- POST /load ---->
-      |                        |         <--- stats ------  |
-      |                        |                          |
-      |                   +!run_episode                   |
-      |  <-- teleport body     |                          |
-      |  region_entered -->    |                          |
-      |                        |                          |
-      |                   +!rl_loop                       |
-      |                   encode state                    |
-      |                   rl.select_action - POST /select_action ->
-      |                        |         <--- action_id --  |
-      |                   decode action                   |
-      |  <-- walk body         |                          |
-      |  region_entered -->    |                          |
-      |                   (loop repeats)                  |
-      |                        |                          |
-      |                   +!end_episode                   |
-      |                   rl.save_model --- POST /save --->
-      |                        |         <--- ok --------  |
++==================+          +====================+          +===================+
+|                  |          |                    |          |                   |
+|  GODOT ENGINE    |          |  JASON / JaCaMo    |          |  PYTHON DQN       |
+|  (3D World)      |          |  (Brain)           |          |  (Learner)        |
+|                  |          |                    |          |                   |
++========+=========+          +==========+=========+          +=========+=========+
+         |                               |                              |
+         |   WebSocket connected         |                              |
+         | <============================ |                              |
+         |                               |                              |
+         |                               |  POST /load/alice            |
+         |                               | ===========================> |
+         |                               |            {stats}           |
+         |                               | <=========================== |
+         |                               |                              |
+         |                          +!run_episode                       |
+         |                          randomize start/goal                |
+         |                               |                              |
+         |    vesna.teleport(start)      |                              |
+         | <============================ |                              |
+         |    region_entered(start)      |                              |
+         | ============================> |                              |
+         |                               |                              |
+         |                          +!rl_loop                           |
+         |                          ENCODE state                        |
+         |                          [one_hot current | one_hot goal]    |
+         |                          valid_actions = neighbor IDs        |
+         |                               |                              |
+         |                               |  POST /select_action         |
+         |                               |  {state, valid_actions,      |
+         |                               |   reward, done}              |
+         |                               | ===========================> |
+         |                               |                              |
+         |                               |          store transition    |
+         |                               |          train mini-batch    |
+         |                               |          pick action         |
+         |                               |                              |
+         |                               |          {action_id: 1}      |
+         |                               | <=========================== |
+         |                               |                              |
+         |                          DECODE action_id                    |
+         |                          id_to_region(1) = corridor          |
+         |                               |                              |
+         |    vesna.walk(door)           |                              |
+         | <============================ |                              |
+         |    movement(completed)        |                              |
+         | ============================> |                              |
+         |    vesna.walk(corridor)       |                              |
+         | <============================ |                              |
+         |    region_entered(corridor)   |                              |
+         | ============================> |                              |
+         |                               |                              |
+         |                          step + 1                            |
+         |                          repeat !rl_loop                     |
+         |                               |                              |
+         |                          (repeats until goal or timeout)     |
+         |                               |                              |
+         |                          +!end_episode                       |
+         |                               |  POST /save/alice            |
+         |                               | ===========================> |
+         |                               |          save alice.pt       |
+         |                               |          {ok}                |
+         |                               | <=========================== |
+         |                               |                              |
+         |                          next episode                        |
+         |                          (repeat 3000 times)                 |
+         |                               |                              |
 ```
+
+**What each layer owns:**
+
+Godot owns the physical simulation. It moves the 3D body, detects room entry,
+and reports perceptions back through WebSocket.
+
+Jason owns the reward machine. It decides what reward to assign (+100 goal,
+-1 step, -10 timeout), manages episodes, encodes/decodes between symbols
+and numbers, and controls the body.
+
+Python owns the learning. It stores experiences, trains the neural network,
+and picks actions. It never knows about room names or maps, only integer IDs
+and float vectors.
 
 
 ## Configuration
