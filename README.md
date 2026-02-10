@@ -376,49 +376,18 @@ Python owns the learning. It stores experiences, trains the neural network,
 and picks actions. It never knows about room names or maps, only integer IDs
 and float vectors.
 
-
-## Configuration
-
-All training parameters are at the top of alice_rl.asl:
-
-| Parameter       | Default | What it does                              |
-|-----------------|---------|-------------------------------------------|
-| max_steps       | 50      | Steps before episode times out            |
-| max_episodes    | 3000    | Total episodes to train                   |
-| eval_mode       | false   | true = use trained policy, false = learn  |
-| save_interval   | 50      | Save checkpoint every N episodes          |
-| reward_goal     | +100    | Reward when agent reaches goal room       |
-| reward_step     | -1      | Reward per step (encourages short paths)  |
-| reward_timeout  | -10     | Reward when episode times out             |
-
-DQN hyperparameters are in dqn_agent.py:
-
-| Parameter       | Default | What it does                              |
-|-----------------|---------|-------------------------------------------|
-| learning_rate   | 0.001   | Adam optimizer learning rate              |
-| gamma           | 0.99    | Discount factor for future rewards        |
-| epsilon_start   | 1.0     | Initial exploration rate                  |
-| epsilon_end     | 0.01    | Minimum exploration rate                  |
-| epsilon_decay   | 0.995   | Multiply epsilon by this each episode     |
-| batch_size      | 32      | Training batch size from replay buffer    |
-| buffer_size     | 10000   | Maximum replay buffer capacity            |
-| target_update   | 10      | Update target network every N episodes    |
-| hidden_size     | 64      | Hidden layer size in the neural network   |
-
-
+ 
 ## Why Random Start and Goal (Goal-Conditioned RL)
 
 This project uses goal-conditioned reinforcement learning with randomized start and goal
-regions. This section explains why, and how it connects to established research.
+regions.  
 
 ### The Problem with Fixed Start and Goal
 
 If the agent always trains from reception to meeting_room, it learns exactly one path.
 It cannot generalize. Drop it in boss_office_2 with a goal of open_office and it has
 never seen that situation before. The policy is useless outside the one pair it memorized.
-
-This is like studying only one exam question. You might ace that question, but you fail
-every other one.
+ 
 
 ### Goal-Conditioned RL
 
@@ -495,6 +464,49 @@ to learn without HER.
 **Reference:** Andrychowicz, M., Wolski, F., Ray, A., Schneider, J., Fong, R., Welinder, P.,
 McGrew, B., Tobin, J., Abbeel, P., and Zaremba, W. "Hindsight Experience Replay."
 Advances in Neural Information Processing Systems (NeurIPS), 2017.
+
+### How Learning Accumulates Across Episodes
+
+One episode is one attempt at one specific start-goal pair. The agent does not learn a
+complete path in a single episode. Learning builds up gradually across many episodes,
+and the same pair can appear more than once.
+
+Here is what happens concretely:
+
+**Episode 12:** start = boss_office_1, goal = reception.
+The agent wanders randomly (epsilon is still high). It takes 38 steps and times out.
+But every step produced a transition (state, action, reward, next_state) that went into
+the replay buffer. The neural network trained on small batches from this buffer. It learned
+a little: "being at corridor with goal reception and stepping toward open_office gave -1,
+that was not great."
+
+**Episode 47:** start = corridor, goal = reception.
+By chance, the random selection picked a pair that overlaps with episode 12. The agent
+has seen corridor before. Its Q-values for corridor are slightly better now. It finds
+reception in 8 steps. The +100 goal reward propagates through training, strengthening
+the Q-values along the path it took.
+
+**Episode 203:** start = boss_office_1, goal = reception (same as episode 12).
+The same pair appears again. But now the agent has trained on thousands of transitions
+from many different episodes. The Q-values for boss_office_1 are much better. The agent
+already knows that corridor leads toward reception (learned from episode 47 and others).
+It reaches the goal in 5 steps.
+
+**The key mechanism is the replay buffer.** It stores transitions from ALL past episodes
+(up to 10,000). When Python trains a mini-batch, it samples 32 random transitions from
+this buffer. A batch might contain a transition from episode 12, another from episode 47,
+and another from episode 180. The neural network learns from all of them together.
+
+This means:
+- Knowledge from one pair transfers to other pairs that share rooms along the way
+- Episode 47 (corridor to reception) helps episode 203 (boss_office_1 to reception)
+  because both paths go through corridor
+- The same pair appearing multiple times is not wasted. Each time, the agent has better
+  Q-values and makes better decisions, reinforcing what works
+
+With 110 possible start-goal combinations (11 rooms x 10 goals) and 3000 episodes,
+each pair appears roughly 27 times on average. Early appearances are mostly random
+exploration. Later appearances use the learned policy and refine it further.
 
 ### How It Works in This Project
 
