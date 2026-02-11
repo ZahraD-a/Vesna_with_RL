@@ -170,7 +170,7 @@ reward_timeout(-10.0).    // given when step >= max_steps
     :   current_region(Region) & goal_region(Region)
     <-
         ?step(S);
-        ?reward_goal(R);
+        ?reward_goal(R); // goal for  each step 
         ?episode_reward(ER);
 
         .print("*** GOAL REACHED in ", S, " steps! ***");
