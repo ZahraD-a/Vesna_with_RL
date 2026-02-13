@@ -8,6 +8,7 @@ The system combines three layers: a game engine (Godot) for the physical world, 
 (JaCaMo/Jason) for symbolic reasoning, and a Python neural network (DQN) for learning.
 
 
+![alt text](image-2.png)
 ## Project Structure
 
 ```
@@ -364,7 +365,6 @@ Each arrow is a real message passing between processes.
 ```
 --->  Workflow 2 communication between jason and RL agent (Python) is via HTTP POST requests. Jason sends the current state, valid actions, reward, and done flag to Python. Python processes this information, updates its learning, and returns the chosen action ID back to Jason:
 ![alt text](image-1.png)
-![alt text](image-2.png)
 
 **What each layer owns:**
 
