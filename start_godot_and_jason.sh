@@ -4,7 +4,7 @@
 
 set -e  # Exit on error
 
-VESNA_ROOT="/home/hamid/Desktop/Projects/Vesna_RL"
+VESNA_ROOT="/home/zahra/Desktop/Projects/Vesna_RL"
 
 # Colors for output
 RED='\033[0;31m'
