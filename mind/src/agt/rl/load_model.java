@@ -12,15 +12,17 @@ import java.time.Duration;
 import org.json.JSONObject;
 
 /**
- * Internal action to load a trained model from checkpoint and optionally enable eval mode.
+ * Internal action to load a trained model from checkpoint and optionally enable
+ * eval mode.
  *
  * Usage in ASL:
- *   rl.load_model(eval)      - Load checkpoint for this agent, eval=true for inference mode
- *   rl.load_model(true)      - Load and enable eval mode (inference only, no training)
- *   rl.load_model(false)     - Load but keep training mode (continues learning)
+ * rl.load_model(eval) - Load checkpoint for this agent, eval=true for inference
+ * mode
+ * rl.load_model(true) - Load and enable eval mode (inference only, no training)
+ * rl.load_model(false) - Load but keep training mode (continues learning)
  *
  * Example:
- *   +!start <- rl.load_model(true); ...  // Load alice.pt in eval mode
+ * +!start <- rl.load_model(true); ... // Load alice.pt in eval mode
  */
 public class load_model extends DefaultInternalAction {
 
@@ -62,14 +64,14 @@ public class load_model extends DefaultInternalAction {
                 if (responseJson.has("stats")) {
                     JSONObject stats = responseJson.getJSONObject("stats");
                     System.out.println("[" + agentName + "] Model stats: episode=" + stats.optInt("episode", 0)
-                        + ", epsilon=" + stats.optDouble("epsilon", 1.0)
-                        + ", steps=" + stats.optInt("steps", 0));
+                            + ", epsilon=" + stats.optDouble("epsilon", 1.0)
+                            + ", steps=" + stats.optInt("steps", 0));
                 }
                 return true;
             } else if (response.statusCode() == 404) {
                 // Checkpoint not found - this is OK for first run
                 System.out.println("[" + agentName + "] No checkpoint found - starting fresh");
-                return true;  // Don't fail, just continue with fresh agent
+                return true; // Don't fail, just continue with fresh agent
             } else {
                 System.err.println("[" + agentName + "] Failed to load model: " + response.body());
                 return false;

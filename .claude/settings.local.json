@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(bash /tmp/check_graph.sh)",
+      "Bash(__NEW_LINE_a79e352987aef78f__ python3 /tmp/analyze_graph.py)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:ar5iv.labs.arxiv.org)"
     ]
   }
 }

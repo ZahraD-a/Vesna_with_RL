@@ -15,8 +15,8 @@
 //------------------------------CONFIGURATION-------------
 
 max_steps(50).                  // max steps before timeout
-max_episodes(1000).              // stop training after N episodes
-eval_mode(true).               // true = use trained policy, false = learning
+max_episodes(5000).              // stop training after N episodes
+eval_mode(false).               // true = use trained policy, false = learning
 save_interval(500).             // auto-save checkpoint every N episodes
 
 // All navigable regions for randomized start/goal

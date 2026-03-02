@@ -1,0 +1,10 @@
+// JCM configuration for BDI mission execution (uses trained RL policy)
+// No training — Alice uses her learned navigation skill for multi-step tasks
+
+mas vesna_mission {
+
+    agent alice:alice_mission.asl {
+        goals:      start
+    }
+
+}

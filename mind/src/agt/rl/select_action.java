@@ -130,6 +130,8 @@ public class select_action extends DefaultInternalAction {
                 logger = new TraceLogger(agentName);
                 logger.setOutputFormat(TraceLogger.OutputFormat.JSON);
                 logger.setOutputFilePath("logs/" + agentName + "_rl_trace.json");
+                logger.setMaxInMemoryEntries(0);  // file-only: no in-memory accumulation
+                logger.setRealTimeConsoleOutput(false);  // RL decisions already printed by ASL
             }
 
             // Extract explanation from response
@@ -153,21 +155,22 @@ public class select_action extends DefaultInternalAction {
                 }
             }
 
-            // Decode state: first 11 = current location, next 11 = goal
+            // Decode state: first half = current location, second half = goal
+            int numRegions = state.length() / 2;
             int currentRegionId = -1;
             int goalRegionId = -1;
-            for (int i = 0; i < 11 && i < state.length(); i++) {
+            for (int i = 0; i < numRegions && i < state.length(); i++) {
                 if (state.getDouble(i) > 0.5) currentRegionId = i;
             }
-            for (int i = 11; i < 22 && i < state.length(); i++) {
-                if (state.getDouble(i) > 0.5) goalRegionId = i - 11;
+            for (int i = numRegions; i < numRegions * 2 && i < state.length(); i++) {
+                if (state.getDouble(i) > 0.5) goalRegionId = i - numRegions;
             }
 
             // Build explanation content
             StringBuilder content = new StringBuilder();
             content.append("RL_ACTION: ").append(actionId);
-            content.append(" | from=").append(REGION_NAMES[currentRegionId]);
-            content.append(" | goal=").append(REGION_NAMES[goalRegionId]);
+            content.append(" | from=").append(regionName(currentRegionId));
+            content.append(" | goal=").append(regionName(goalRegionId));
             content.append(" | reward=").append(reward);
             content.append(" | mode=").append(mode);
 
@@ -180,7 +183,7 @@ public class select_action extends DefaultInternalAction {
                     String reason = (altQ < selectedQ)
                         ? "Q=" + String.format("%.3f", altQ) + " < selected Q=" + String.format("%.3f", selectedQ)
                         : "not selected";
-                    alternatives.add(REGION_NAMES[altAction] + " (" + reason + ")");
+                    alternatives.add(regionName(altAction) + " (" + reason + ")");
                 }
             }
 
@@ -188,7 +191,7 @@ public class select_action extends DefaultInternalAction {
             StringBuilder metadata = new StringBuilder();
             metadata.append("Q-values: {");
             for (Map.Entry<Integer, Double> entry : qValues.entrySet()) {
-                metadata.append(REGION_NAMES[entry.getKey()]).append("=");
+                metadata.append(regionName(entry.getKey())).append("=");
                 metadata.append(String.format("%.3f", entry.getValue()));
                 if (entry.getKey() == actionId) metadata.append("*");  // Mark selected
                 metadata.append(", ");
@@ -209,18 +212,65 @@ public class select_action extends DefaultInternalAction {
         }
     }
 
-    // Region name lookup for explainability
+    // Region name lookup for explainability (covers 50-room extended map)
     private static final String[] REGION_NAMES = {
-        "reception",       // 0
-        "corridor",        // 1
-        "open_office",     // 2
-        "outside",         // 3
-        "common",          // 4
-        "meeting_room",    // 5
-        "senior_office_1", // 6
-        "senior_office_2", // 7
-        "senior_office_3", // 8
-        "boss_office_1",   // 9
-        "boss_office_2"    // 10
+        "reception",        // 0
+        "corridor",         // 1
+        "open_office",      // 2
+        "outside",          // 3
+        "common",           // 4
+        "meeting_room",     // 5
+        "senior_office_1",  // 6
+        "senior_office_2",  // 7
+        "senior_office_3",  // 8
+        "boss_office_1",    // 9
+        "boss_office_2",    // 10
+        "corridor_north",   // 11
+        "corridor_south",   // 12
+        "kitchen",          // 13
+        "restroom_1",       // 14
+        "storage_1",        // 15
+        "meeting_room_2",   // 16
+        "meeting_room_3",   // 17
+        "lab_1",            // 18
+        "lab_2",            // 19
+        "server_room",      // 20
+        "office_1",         // 21
+        "office_2",         // 22
+        "office_3",         // 23
+        "office_4",         // 24
+        "office_5",         // 25
+        "lobby",            // 26
+        "cafeteria",        // 27
+        "gym",              // 28
+        "restroom_2",       // 29
+        "office_6",         // 30
+        "office_7",         // 31
+        "office_8",         // 32
+        "office_9",         // 33
+        "office_10",        // 34
+        "archive",          // 35
+        "training_room",    // 36
+        "terrace",          // 37
+        "parking",          // 38
+        "conference_room",  // 39
+        "security_desk",    // 40
+        "library",          // 41
+        "print_room",       // 42
+        "mail_room",        // 43
+        "executive_suite",  // 44
+        "phone_booth_1",    // 45
+        "phone_booth_2",    // 46
+        "supply_closet",    // 47
+        "lounge",           // 48
+        "wellness_room",    // 49
     };
+
+    /** Safe region name lookup — returns "region_N" for unknown IDs. */
+    private static String regionName(int id) {
+        if (id >= 0 && id < REGION_NAMES.length) {
+            return REGION_NAMES[id];
+        }
+        return "region_" + id;
+    }
 }

@@ -1,0 +1,10 @@
+// JCM configuration for graph-based RL training (no Godot)
+// Uses navigation_rl_bridge.asl for instant graph transitions
+
+mas vesna_navigation_rl {
+
+    agent alice:alice_navigation_rl.asl {
+        goals:      start
+    }
+
+}

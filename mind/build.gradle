@@ -42,6 +42,27 @@ task runRL (type: JavaExec, dependsOn: 'classes') {
     classpath sourceSets.main.runtimeClasspath
 }
 
+task runNavigationRL (type: JavaExec, dependsOn: 'classes') {
+    description 'runs graph-based RL training (no Godot)'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_navigation_rl.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx1g', '-Xms256m',                // Heap: 1GB max (bounded to prevent native OOM)
+        '-XX:ReservedCodeCacheSize=128m',      // Enough code cache for JIT + Swing
+        '-XX:+UseSerialGC',                    // Simpler GC for single-agent training
+    ]
+}
+
+task runMission (type: JavaExec, dependsOn: 'classes') {
+    description 'runs BDI mission using trained RL policy (no retraining)'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_mission.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
 javadoc {
     destinationDir = file( "$buildDir/docs/javadoc" )
     options.memberLevel = JavadocMemberLevel.PRIVATE

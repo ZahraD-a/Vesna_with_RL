@@ -37,14 +37,35 @@ app = Flask(__name__)
 # Resolve checkpoint dir relative to project root (two levels up from mind/python/)
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", os.path.join(_PROJECT_ROOT, "checkpoints"))
+LOG_DIR = os.environ.get("LOG_DIR", os.path.join(_PROJECT_ROOT, "runs"))
 
 agents: Dict[str, DQNAgent] = {}
+
+# Configurable via environment variables (defaults = original 11-room map)
+STATE_SIZE = int(os.environ.get("STATE_SIZE", "22"))
+ACTION_SIZE = int(os.environ.get("ACTION_SIZE", "11"))
+HIDDEN_SIZE = int(os.environ.get("HIDDEN_SIZE", "64"))
+BUFFER_SIZE = int(os.environ.get("BUFFER_SIZE", "10000"))
+EPSILON_DECAY = float(os.environ.get("EPSILON_DECAY", "0.9999"))
+TARGET_UPDATE = int(os.environ.get("TARGET_UPDATE", "10"))
 
 
 def get_or_create_agent(agent_id: str) -> DQNAgent:
     if agent_id not in agents:
-        logger.info("Creating new agent: %s", agent_id)
-        agents[agent_id] = DQNAgent(state_size=22, action_size=11)
+        logger.info(
+            "Creating new agent: %s (state=%d, actions=%d, hidden=%d, buffer=%d, eps_decay=%.4f, target_upd=%d)",
+            agent_id, STATE_SIZE, ACTION_SIZE, HIDDEN_SIZE, BUFFER_SIZE, EPSILON_DECAY, TARGET_UPDATE,
+        )
+        agent_log_dir = os.path.join(LOG_DIR, agent_id)
+        agents[agent_id] = DQNAgent(
+            state_size=STATE_SIZE,
+            action_size=ACTION_SIZE,
+            hidden_size=HIDDEN_SIZE,
+            buffer_size=BUFFER_SIZE,
+            epsilon_decay=EPSILON_DECAY,
+            target_update=TARGET_UPDATE,
+            log_dir=agent_log_dir,
+        )
     return agents[agent_id]
 
 
@@ -101,11 +122,11 @@ def select_action():
 
         state_raw = data.get("state", None)
         if not isinstance(state_raw, list):
-            return _bad_request("state must be a list of length 22")
+            return _bad_request(f"state must be a list of length {STATE_SIZE}")
 
         state = np.asarray(state_raw, dtype=np.float32)
-        if state.shape != (22,):
-            return _bad_request("state must have exactly 22 elements")
+        if state.shape != (STATE_SIZE,):
+            return _bad_request(f"state must have exactly {STATE_SIZE} elements")
 
         agent = get_or_create_agent(agent_id)
         valid_actions = _parse_valid_actions(data.get("valid_actions", None), agent.action_size)
@@ -122,12 +143,13 @@ def select_action():
         )
 
         mode = "EVAL" if agent.eval_mode else f"eps={agent.epsilon:.3f}"
+        num_regions = ACTION_SIZE
         logger.info(
             "[%s] ep=%d %s o=%d valid=%s r=%.2f done=%s -> a=%d",
             agent_id,
             agent.episode,
             mode,
-            int(state[:11].argmax()),
+            int(state[:num_regions].argmax()),
             valid_actions,
             reward,
             done,
@@ -213,8 +235,17 @@ def load(agent_id: str):
 
 
 def main():
+    import atexit
+
+    def _cleanup():
+        for aid, agent in agents.items():
+            logger.info("[%s] Flushing TensorBoard logs...", aid)
+            agent.close()
+
+    atexit.register(_cleanup)
+
     port = int(os.environ.get("PORT", "5000"))
-    logger.info("Starting VEsNA RL Service on port %d", port)
+    logger.info("Starting VEsNA RL Service on port %d (TB logs → %s)", port, LOG_DIR)
     app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
 
 
