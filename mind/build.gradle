@@ -55,12 +55,17 @@ task runNavigationRL (type: JavaExec, dependsOn: 'classes') {
     ]
 }
 
-task runMission (type: JavaExec, dependsOn: 'classes') {
-    description 'runs BDI mission using trained RL policy (no retraining)'
+task run100 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs 100-region RL training (no Godot)'
     group ' JaCaMo'
     mainClass = 'jacamo.infra.JaCaMoLauncher'
-    args 'vesna_mission.jcm'
+    args 'vesna_100.jcm'
     classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx2g', '-Xms512m',                // Heap: 2GB max (bounded to prevent native OOM)
+        '-XX:ReservedCodeCacheSize=128m',      // Enough code cache for JIT + Swing
+        '-XX:+UseSerialGC',                    // Simpler GC for single-agent training
+    ]
 }
 
 javadoc {
