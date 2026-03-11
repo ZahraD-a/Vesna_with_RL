@@ -92,3 +92,10 @@ Godot_v*
 # =============================================================================
 .DS_Store
 Thumbs.db
+
+
+mind\src\agt\alice_navigation_rl.asl
+.factory\settings.json
+.factory
+.claude\settings.local.json
+.claude

@@ -25,15 +25,16 @@ mkdir -p "$LOGS_DIR"
 
 # --- 100-region Configuration ---
 echo "=== 100-region mode (extended map) ==="
-export STATE_SIZE=200
-export ACTION_SIZE=100
-export HIDDEN_SIZE=256       # Larger hidden layer for 100 actions
-export BUFFER_SIZE=500000   # 500K replay buffer for more experience
+export STATE_SIZE=206       # 103 regions * 2 (current + goal)
+export ACTION_SIZE=103      # 103 possible actions
+export HIDDEN_SIZE=128      # Reduced from 256 to save memory
+export BUFFER_SIZE=50000    # 50K replay buffer (reduced to prevent MemoryError)
+export BATCH_SIZE=128       # Increased for more stable gradients with GPU acceleration
 export EPSILON_DECAY=0.999985 # Very slow decay: stays exploratory longer
 export TARGET_UPDATE=500     # Less frequent Q-target syncs for larger network
 
-export MAX_EPISODES=500000
-export MAX_STEPS=250
+export MAX_EPISODES=100000  # Reduced from 500K - sufficient for 100-region convergence
+export MAX_STEPS=300        # Increased from 250 - allows more exploration in 100-region space
 
 export PORT="${PORT:-5000}"
 export GRADLE_OPTS="${GRADLE_OPTS:--Xmx256m}"
@@ -53,7 +54,22 @@ trap cleanup EXIT INT TERM
 # --- Start Python DQN server ---
 echo "Starting Python DQN server (state=$STATE_SIZE, actions=$ACTION_SIZE, hidden=$HIDDEN_SIZE)..."
 cd "$PYTHON_DIR"
-python dqn_server.py > "$LOGS_DIR/dqn_server_100.log" 2>&1 &
+
+# Use virtual environment Python on Windows
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    PYTHON_EXE="$PYTHON_DIR/.venv/Scripts/python.exe"
+else
+    PYTHON_EXE="$PYTHON_DIR/.venv/bin/python"
+fi
+
+# Fallback to system python if venv not found
+if [[ ! -f "$PYTHON_EXE" ]]; then
+    echo "Warning: Virtual environment not found, using system python"
+    PYTHON_EXE="python"
+fi
+
+echo "Using Python: $PYTHON_EXE"
+"$PYTHON_EXE" dqn_server.py > "$LOGS_DIR/dqn_server_100.log" 2>&1 &
 PYTHON_PID=$!
 cd "$PROJECT_ROOT"
 

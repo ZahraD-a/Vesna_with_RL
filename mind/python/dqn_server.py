@@ -16,6 +16,7 @@ Endpoints:
   POST /load/<agent_id>
 """
 
+import gc
 import logging
 import os
 from typing import Any, Dict, List
@@ -46,6 +47,7 @@ STATE_SIZE = int(os.environ.get("STATE_SIZE", "22"))
 ACTION_SIZE = int(os.environ.get("ACTION_SIZE", "11"))
 HIDDEN_SIZE = int(os.environ.get("HIDDEN_SIZE", "64"))
 BUFFER_SIZE = int(os.environ.get("BUFFER_SIZE", "10000"))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "64"))
 EPSILON_DECAY = float(os.environ.get("EPSILON_DECAY", "0.9999"))
 TARGET_UPDATE = int(os.environ.get("TARGET_UPDATE", "10"))
 
@@ -53,8 +55,8 @@ TARGET_UPDATE = int(os.environ.get("TARGET_UPDATE", "10"))
 def get_or_create_agent(agent_id: str) -> DQNAgent:
     if agent_id not in agents:
         logger.info(
-            "Creating new agent: %s (state=%d, actions=%d, hidden=%d, buffer=%d, eps_decay=%.4f, target_upd=%d)",
-            agent_id, STATE_SIZE, ACTION_SIZE, HIDDEN_SIZE, BUFFER_SIZE, EPSILON_DECAY, TARGET_UPDATE,
+            "Creating new agent: %s (state=%d, actions=%d, hidden=%d, buffer=%d, batch=%d, eps_decay=%.4f, target_upd=%d)",
+            agent_id, STATE_SIZE, ACTION_SIZE, HIDDEN_SIZE, BUFFER_SIZE, BATCH_SIZE, EPSILON_DECAY, TARGET_UPDATE,
         )
         agent_log_dir = os.path.join(LOG_DIR, agent_id)
         agents[agent_id] = DQNAgent(
@@ -62,6 +64,7 @@ def get_or_create_agent(agent_id: str) -> DQNAgent:
             action_size=ACTION_SIZE,
             hidden_size=HIDDEN_SIZE,
             buffer_size=BUFFER_SIZE,
+            batch_size=BATCH_SIZE,
             epsilon_decay=EPSILON_DECAY,
             target_update=TARGET_UPDATE,
             log_dir=agent_log_dir,
@@ -142,19 +145,20 @@ def select_action():
             done=done,
         )
 
-        mode = "EVAL" if agent.eval_mode else f"eps={agent.epsilon:.3f}"
-        num_regions = ACTION_SIZE
-        logger.info(
-            "[%s] ep=%d %s o=%d valid=%s r=%.2f done=%s -> a=%d",
-            agent_id,
-            agent.episode,
-            mode,
-            int(state[:num_regions].argmax()),
-            valid_actions,
-            reward,
-            done,
-            action_id,
-        )
+        # Only log episode summaries (when done=True) to avoid I/O bottleneck
+        # For headless training, per-step logging slows down training 5-10x
+        if done:
+            mode = "EVAL" if agent.eval_mode else f"eps={agent.epsilon:.3f}"
+            num_regions = ACTION_SIZE
+            logger.info(
+                "[%s] ep=%d %s DONE | final_o=%d r=%.2f -> a=%d",
+                agent_id,
+                agent.episode,
+                mode,
+                int(state[:num_regions].argmax()),
+                reward,
+                action_id,
+            )
 
         # Build explainable response
         response = {
@@ -167,6 +171,11 @@ def select_action():
                 "epsilon": float(round(agent.epsilon, 4)) if not agent.eval_mode else 0.0,
             }
         }
+
+        # Periodic garbage collection to prevent memory buildup
+        if agent.steps % 1000 == 0:
+            gc.collect()
+
         return jsonify(response)
 
     except Exception as e:

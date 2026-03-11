@@ -11,6 +11,7 @@ Important contract:
 Masking: invalid actions get -inf so argmax never selects them. :contentReference[oaicite:7]{index=7}
 """
 
+import gc
 import logging
 import random
 from collections import deque
@@ -228,6 +229,12 @@ class DQNAgent:
             if self.episode % self.target_update == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
+            # Aggressive garbage collection every 10 episodes to prevent memory buildup
+            if self.episode % 10 == 0:
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
             self.prev_state = None
             self.prev_action = None
             self._ep_reward = 0.0
@@ -287,13 +294,23 @@ class DQNAgent:
         )
         self.optimizer.step()
 
+        # Save values for logging before freeing memory
+        loss_value = loss.item()
+        avg_q_value = q_sa.mean().item()
+        max_q_value = q_sa.max().item()
+
+        # Free memory from training tensors
+        del states, actions, rewards, next_states, dones, q_all, q_sa, next_q_all, max_next_q, target, loss
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         # TensorBoard: log training metrics every 50 batches
         self._train_step += 1
         if self._writer and self._train_step % 50 == 0:
             gn = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else float(grad_norm)
-            self._writer.add_scalar("training/loss", loss.item(), self._train_step)
-            self._writer.add_scalar("training/avg_q", q_sa.mean().item(), self._train_step)
-            self._writer.add_scalar("training/max_q", q_sa.max().item(), self._train_step)
+            self._writer.add_scalar("training/loss", loss_value, self._train_step)
+            self._writer.add_scalar("training/avg_q", avg_q_value, self._train_step)
+            self._writer.add_scalar("training/max_q", max_q_value, self._train_step)
             self._writer.add_scalar("training/grad_norm", gn, self._train_step)
             self._writer.add_scalar("training/lr",
                                     self.optimizer.param_groups[0]["lr"], self._train_step)
