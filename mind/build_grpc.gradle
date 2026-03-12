@@ -1,0 +1,140 @@
+defaultTasks 'run'
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.9.4'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.google.protobuf'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    maven { url "https://raw.githubusercontent.com/jacamo-lang/mvn-repo/master" }
+    maven { url "https://repo.gradle.org/gradle/libs-releases" }
+    mavenCentral()
+}
+
+dependencies {
+    implementation ('org.jacamo:jacamo:1.2')
+
+    // https://mvnrepository.com/artifact/org.java-websocket/Java-WebSocket
+    implementation group: 'org.java-websocket', name: 'Java-WebSocket', version: '1.5.6'
+    // https://mvnrepository.com/artifact/org.json/json
+    implementation("org.json:json:20230227")
+    
+    // https://mvnrepository.com/artifact/javax.validation/validation-api
+    implementation("javax.validation:validation-api:2.0.1.Final")
+
+    // gRPC dependencies for high-performance RL communication
+    implementation 'io.grpc:grpc-netty-shaded:1.62.2'
+    implementation 'io.grpc:grpc-protobuf:1.62.2'
+    implementation 'io.grpc:grpc-stub:1.62.2'
+    implementation 'com.google.protobuf:protobuf-java:3.25.1'
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+
+}
+
+task run (type: JavaExec, dependsOn: 'classes') {
+    description 'runs the application'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+task runRL (type: JavaExec, dependsOn: 'classes') {
+    description 'runs the RL agent'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_rl.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+task runNavigationRL (type: JavaExec, dependsOn: 'classes') {
+    description 'runs graph-based RL training (no Godot)'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_navigation_rl.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx1g', '-Xms256m',                // Heap: 1GB max (bounded to prevent native OOM)
+        '-XX:ReservedCodeCacheSize=128m',      // Enough code cache for JIT + Swing
+        '-XX:+UseSerialGC',                    // Simpler GC for single-agent training
+    ]
+}
+
+task run100 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs 100-region RL training (no Godot)'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_100.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx8g', '-Xms2g',                   // 8 agents need more heap
+        '-XX:ReservedCodeCacheSize=256m',
+        '-XX:+UseG1GC',
+        '-XX:MaxGCPauseMillis=5',
+        '-XX:ParallelGCThreads=8',              // Match number of agents
+    ]
+}
+
+task run100_grpc (type: JavaExec, dependsOn: 'classes') {
+    description 'runs 100-region RL training via gRPC (multi-threaded)'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_100_grpc.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx8g', '-Xms2g',                   // 8 agents need more heap
+        '-XX:ReservedCodeCacheSize=256m',
+        '-XX:+UseG1GC',
+        '-XX:MaxGCPauseMillis=5',
+        '-XX:ParallelGCThreads=8',              // Match number of agents
+    ]
+}
+
+javadoc {
+    destinationDir = file( "$buildDir/docs/javadoc" )
+    options.memberLevel = JavadocMemberLevel.PRIVATE
+    options.addStringOption( "-add-stylesheet", "styles.css" )
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/'
+        }
+        proto {
+            srcDir 'src/main/proto'
+        }
+    }
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.1'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.62.2'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}
