@@ -66,7 +66,7 @@ if [ ! -d ".venv" ]; then
     exit 1
 fi
 
-source .venv/Scripts/activate
+    source .venv/Scripts/activate
 python dqn_server.py > "$LOGS_DIR/rl_service.log" 2>&1 &
 PYTHON_PID=$!
 

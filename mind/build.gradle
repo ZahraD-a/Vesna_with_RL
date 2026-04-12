@@ -20,10 +20,9 @@ dependencies {
     implementation group: 'org.java-websocket', name: 'Java-WebSocket', version: '1.5.6'
     // https://mvnrepository.com/artifact/org.json/json
     implementation("org.json:json:20230227")
-    
+
     // https://mvnrepository.com/artifact/javax.validation/validation-api
     implementation("javax.validation:validation-api:2.0.1.Final")
-
 }
 
 task run (type: JavaExec, dependsOn: 'classes') {
@@ -40,6 +39,45 @@ task runRL (type: JavaExec, dependsOn: 'classes') {
     mainClass = 'jacamo.infra.JaCaMoLauncher'
     args 'vesna_rl.jcm'
     classpath sourceSets.main.runtimeClasspath
+}
+
+task runNavigationRL11 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs graph-based RL training (no Godot) - 11 regions -> navigation_11_regions.pt'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_navigation_rl_11.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx1g', '-Xms256m',
+        '-XX:ReservedCodeCacheSize=128m',
+        '-XX:+UseSerialGC',
+    ]
+}
+
+task runNavigationRL50 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs graph-based RL training (no Godot) - 50 regions -> navigation_50_regions.pt'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_navigation_rl_50.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx1g', '-Xms256m',
+        '-XX:ReservedCodeCacheSize=128m',
+        '-XX:+UseSerialGC',
+    ]
+}
+
+task runNavigationRL103 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs graph-based RL training (no Godot) - 103 regions -> navigation_103_regions.pt'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna_navigation_rl_103.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    jvmArgs = [
+        '-Xmx2g', '-Xms512m',
+        '-XX:ReservedCodeCacheSize=128m',
+        '-XX:+UseSerialGC',
+    ]
 }
 
 javadoc {

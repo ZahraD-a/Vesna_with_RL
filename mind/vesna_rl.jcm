@@ -1,9 +1,9 @@
-// JCM configuration for RL training
-// Only alice_rl agent - learning to find coffee
+// JCM configuration for Godot-based RL training
+// Checkpoint produced: checkpoints/alice50.pt
 
 mas vesna_rl {
 
-    agent alice:alice_rl.asl {
+    agent alice50:godot_rl.asl {
         ag-class:   vesna.VesnaAgent
         address:    localhost
         port:       9080

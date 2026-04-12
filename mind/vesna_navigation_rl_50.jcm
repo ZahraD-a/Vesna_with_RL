@@ -1,0 +1,11 @@
+// JCM configuration for 50-region graph-based RL training (no Godot)
+// Checkpoint produced: checkpoints/alice50.pt
+// TensorBoard logs:   runs/alice50/
+
+mas vesna_navigation_rl_50 {
+
+    agent alice50:navigation_rl_50.asl {
+        goals:      start
+    }
+
+}

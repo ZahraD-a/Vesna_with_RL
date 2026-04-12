@@ -1,0 +1,10 @@
+// JCM configuration for BDI mission execution (uses trained RL policy)
+// Loads checkpoints/alice50.pt for navigation
+
+mas vesna_mission {
+
+    agent alice50:mission.asl {
+        goals:      start
+    }
+
+}

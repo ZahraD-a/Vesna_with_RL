@@ -216,6 +216,19 @@ public class TraceLogger {
   // LOGGING METHODS
   // ========================================================================
 
+  /** Max entries to keep in memory (prevents OOM during long training runs) */
+  private int maxInMemoryEntries = 1000;
+
+  /**
+   * Set the maximum number of trace entries to keep in memory.
+   * Older entries are discarded (they are still written to file if configured).
+   * Set to 0 to disable in-memory storage entirely (file-only mode).
+   */
+  public TraceLogger setMaxInMemoryEntries(int max) {
+    this.maxInMemoryEntries = max;
+    return this;
+  }
+
   /**
    * Log a trace entry
    *
@@ -227,8 +240,17 @@ public class TraceLogger {
       return;
     }
 
-    // Add to collection
-    traceEntries.add(entry);
+    // Add to in-memory collection (with cap to prevent OOM)
+    if (maxInMemoryEntries > 0) {
+      if (traceEntries.size() >= maxInMemoryEntries) {
+        // Remove oldest entries in bulk (clear half) to avoid doing this every call
+        int removeCount = maxInMemoryEntries / 2;
+        for (int i = 0; i < removeCount && !traceEntries.isEmpty(); i++) {
+          traceEntries.remove(0);
+        }
+      }
+      traceEntries.add(entry);
+    }
 
     // Real-time console output
     if (realTimeConsoleOutput) {

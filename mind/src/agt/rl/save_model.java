@@ -12,31 +12,37 @@ import java.time.Duration;
 import org.json.JSONObject;
 
 /**
- * Internal action to save the current model checkpoint.
- * Calls POST /save/<agent_id> on the Python RL service.
+ * Internal action to save the current model checkpoint via HTTP.
  *
  * Usage in ASL:
  *   rl.save_model
  *
- * Saves to: checkpoints/<agent_name>.pt
+ * Saves to: checkpoints/{agent_name}.pt (or default path on server)
+ *
+ * Checkpoint naming convention:
+ *   - alice11.pt   (11-region graph-based training)
+ *   - alice50.pt   (50-region graph-based training)
+ *   - alice103.pt  (103-region graph-based training)
+ * The checkpoint filename is determined by the agent_name in the .jcm config.
  */
 public class save_model extends DefaultInternalAction {
 
-    private static final String RL_SERVICE_BASE = "http://localhost:5000";
+    private static final String RL_SERVICE_BASE = System.getenv().getOrDefault("RL_SERVICE_URL", "http://localhost:5000").replace("/select_action", "");
     private static final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
+            .connectTimeout(Duration.ofSeconds(30))
             .build();
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
         String agentName = ts.getAgArch().getAgName();
 
+        JSONObject requestBody = new JSONObject();
         String url = RL_SERVICE_BASE + "/save/" + agentName;
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
 
         try {
@@ -52,7 +58,7 @@ public class save_model extends DefaultInternalAction {
                 return false;
             }
         } catch (java.net.ConnectException e) {
-            System.err.println("[" + agentName + "] RL service not available for save at " + RL_SERVICE_BASE);
+            System.err.println("[" + agentName + "] RL service not available at " + RL_SERVICE_BASE);
             return false;
         }
     }
