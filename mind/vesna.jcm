@@ -1,6 +1,9 @@
+// JCM configuration for interactive Godot simulation
+// Loads checkpoints/alice50.pt for navigation
+
 mas vesna {
 
-    agent alice:alice.asl {
+    agent alice50:alice.asl {
         ag-class:   vesna.VesnaAgent
         address:    localhost
         port:       9080

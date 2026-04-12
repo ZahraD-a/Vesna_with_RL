@@ -373,9 +373,33 @@ class DQNAgent:
         }, path)
 
     def load(self, path: str) -> None:
-        ckpt = torch.load(path, map_location=self.device)  # :contentReference[oaicite:8]{index=8}
-        self.policy_net.load_state_dict(ckpt["policy_net"])
-        self.target_net.load_state_dict(ckpt["target_net"])
+        ckpt = torch.load(path, map_location=self.device, weights_only=False)
+
+        # Check if checkpoint uses compiled model format (_orig_mod.net.X)
+        # vs non-compiled format (fc1, fc2, fc3)
+        policy_state = ckpt["policy_net"]
+        target_state = ckpt["target_net"]
+
+        if any(k.startswith('_orig_mod') for k in policy_state.keys()):
+            # Remap compiled keys to non-compiled keys
+            key_map = {
+                '_orig_mod.net.0.weight': 'fc1.weight',
+                '_orig_mod.net.0.bias': 'fc1.bias',
+                '_orig_mod.net.2.weight': 'fc2.weight',
+                '_orig_mod.net.2.bias': 'fc2.bias',
+                '_orig_mod.net.4.weight': 'fc3.weight',
+                '_orig_mod.net.4.bias': 'fc3.bias',
+                '_orig_mod.net.6.weight': 'fc4.weight',
+                '_orig_mod.net.6.bias': 'fc4.bias',
+            }
+            policy_remapped = {key_map.get(k, k): v for k, v in policy_state.items()}
+            target_remapped = {key_map.get(k, k): v for k, v in target_state.items()}
+            self.policy_net.load_state_dict(policy_remapped, strict=False)
+            self.target_net.load_state_dict(target_remapped, strict=False)
+        else:
+            self.policy_net.load_state_dict(policy_state)
+            self.target_net.load_state_dict(target_state)
+
         self.optimizer.load_state_dict(ckpt["optimizer"])
         self.episode = int(ckpt.get("episode", 0))
         self.epsilon = float(ckpt.get("epsilon", 1.0))

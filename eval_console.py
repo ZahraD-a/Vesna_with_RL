@@ -72,7 +72,7 @@ def make_state(c, g):
 
 # Load agent
 agent = DQNAgent(state_size=100, action_size=50, hidden_size=128)
-agent.load("checkpoints/alice.pt")
+agent.load("checkpoints/alice50.pt")
 agent.set_eval_mode(True)
 print(f"Loaded policy (episode={agent.episode}, epsilon={agent.epsilon:.6f})")
 print()

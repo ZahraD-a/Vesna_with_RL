@@ -1,0 +1,11 @@
+// JCM configuration for 103-region graph-based RL training (no Godot)
+// Checkpoint produced: checkpoints/alice103.pt
+// TensorBoard logs:   runs/alice103/
+
+mas vesna_navigation_rl_103 {
+
+    agent alice103:navigation_rl_103.asl {
+        goals: start
+    }
+
+}

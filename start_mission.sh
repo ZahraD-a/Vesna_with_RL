@@ -5,8 +5,7 @@
 # This demonstrates the hybrid BDI-RL architecture:
 #   - Jason (BDI) plans the mission (pickup, deliver, patrol)
 #   - Python (DQN) provides the navigation skill (trained checkpoint)
-#   - NO retraining! Uses checkpoints/alice.pt as-is.
-#
+#   - NO retraining! Uses checkpoints/alice50.pt as-is.
 # Usage:
 #   ./start_mission.sh              # run delivery mission (default)
 # ============================================================
@@ -35,8 +34,8 @@ export PORT="${PORT:-5000}"
 export GRADLE_OPTS="${GRADLE_OPTS:--Xmx256m}"
 
 # --- Check checkpoint exists ---
-if [[ ! -f "$PROJECT_ROOT/checkpoints/alice.pt" ]]; then
-    echo "ERROR: No trained checkpoint found at checkpoints/alice.pt"
+if [[ ! -f "$PROJECT_ROOT/checkpoints/alice50.pt" ]]; then
+    echo "ERROR: No trained checkpoint found at checkpoints/alice50.pt"
     echo "Train first with: ./start_navigation_training.sh"
     exit 1
 fi
@@ -56,7 +55,7 @@ trap cleanup EXIT INT TERM
 # --- Start Python DQN server ---
 echo "Starting Python DQN server (eval mode — no training)..."
 cd "$PYTHON_DIR"
-python dqn_server.py > "$LOGS_DIR/dqn_server.log" 2>&1 &
+python dqn_server.py > "$LOGS_DIR/dqn_server_50.log" 2>&1 &
 PYTHON_PID=$!
 cd "$PROJECT_ROOT"
 

@@ -1,7 +1,0 @@
-// JCM configuration for 100-region RL training
-
-mas vesna_navigation_rl_100 {
-    agent alice_navigation_rl_100 {
-        goals: start
-    }
-}

@@ -7,6 +7,14 @@ Contract:
   valid actions, and the reward/done from the PREVIOUS transition, then
   returns the next action.
 
+Checkpoint naming convention:
+  The save endpoint creates checkpoints/{agent_name}.pt where agent_name
+  comes from the .jcm config. To get descriptive names, set agent names
+  in the .jcm accordingly:
+    - "alice11"  -> checkpoints/alice11.pt   (11-region graph-based)
+    - "alice50"  -> checkpoints/alice50.pt   (50-region graph-based)
+    - "alice103" -> checkpoints/alice103.pt  (103-region graph-based)
+
 Endpoints:
   POST /select_action  - action selection + (optional) training on previous transition
   POST /reset          - reset episode memory for an agent

@@ -22,7 +22,7 @@ import org.json.JSONObject;
  * rl.load_model(false) - Load but keep training mode (continues learning)
  *
  * Example:
- * +!start <- rl.load_model(true); ... // Load alice.pt in eval mode
+ * +!start <- rl.load_model(true); ... // Load checkpoint in eval mode
  */
 public class load_model extends DefaultInternalAction {
 

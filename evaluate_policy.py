@@ -9,7 +9,7 @@ Safe to run independently — does NOT require the training server.
 
 Usage:
     python evaluate_policy.py
-    python evaluate_policy.py --checkpoint checkpoints/alice.pt
+    python evaluate_policy.py --checkpoint checkpoints/alice50.pt
 """
 
 import argparse
@@ -419,7 +419,7 @@ def main():
     project_root = os.path.dirname(os.path.abspath(__file__))
 
     parser = argparse.ArgumentParser(description="Evaluate trained DQN navigation policy")
-    parser.add_argument("--checkpoint", default=os.path.join(project_root, "checkpoints", "alice.pt"))
+    parser.add_argument("--checkpoint", default=os.path.join(project_root, "checkpoints", "alice50.pt"))
     parser.add_argument("--output-dir", default=os.path.join(project_root, "evaluation"))
     args = parser.parse_args()
 
