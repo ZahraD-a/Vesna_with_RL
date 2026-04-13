@@ -43,10 +43,13 @@ We model navigation as a goal-conditioned Markov Decision Process:
 
 
 DQN update:
-$$
-y_t = r_t + \gamma \max_{a'} Q_{\theta^-}(s_{t+1}, a'), \quad
-\theta \leftarrow \arg\min_\theta \left(Q_\theta(s_t, a_t) - y_t\right)^2
-$$
+
+```math
+\begin{aligned}
+y_t &= r_t + \gamma \max_{a'} Q_{\theta^-}(s_{t+1}, a'), \\
+\theta^{*} &= \arg\min_{\theta}\left(Q_{\theta}(s_t, a_t) - y_t\right)^2
+\end{aligned}
+```
 
 ### 1.2 Introduction
 
@@ -170,6 +173,19 @@ python plot_training.py
 python csv_to_tensorboard.py
 tensorboard --logdir runs --port 6006
 ```
+
+Web monitor (policy + map UI on port `8050`):
+
+```bash
+cd mind/python
+source .venv/Scripts/activate   # Windows (Git Bash)
+# source .venv/bin/activate     # Linux/macOS
+python web_monitor.py --port 8050
+```
+
+Then open:
+
+- `http://localhost:8050/map`
 
 Core evaluation protocol:
 
