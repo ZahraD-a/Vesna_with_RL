@@ -194,7 +194,9 @@ Core evaluation protocol:
 3. Compare agent path length against BFS shortest-path baseline.
 4. Report success rate, average steps, and optimality ratio.
 
-![Success rate across Alice navigation region expansions](evaluation/success_rate_across_alice_navigation_expansions_regions.jpg)
+![Training curves](evaluation/fig02_training_curves.png)
+
+![Training curves — no action masking](evaluation/training_curves_no_action_masking.png)
 
 
 ### 4.3 Discussion
